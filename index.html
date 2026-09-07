@@ -1,0 +1,3080 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#FFFFFF">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Carnet EPS">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-180.png">
+<title>Carnet EPS</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700;800&family=IBM+Plex+Mono:wght@500;600&family=Public+Sans:wght@400;500;600&display=swap">
+
+<style>
+/* Appli volontairement en fond blanc, quel que soit le thème du téléphone. */
+:root, :root[data-theme="dark"], :root[data-theme="light"]{
+  color-scheme: light;
+  --ink:#141821; --ink-2:#3D4557; --ink-3:#6E7688;
+  --paper:#FFFFFF; --surface:#FFFFFF; --surface-2:#F2F3F6;
+  --line:#E4E5EA; --line-strong:#C8CAD3;
+  --accent:#4459E8; --accent-soft:#EAECFD; --accent-ink:#2C3AA8;
+  --warn:#B4740F; --warn-soft:#FCF2DF;
+  --alert:#C0392F; --alert-soft:#FDE9E6;
+  --ok:#2E7D5B; --ok-soft:#E4F2EC;
+  --shadow:0 1px 2px rgba(20,24,33,.05), 0 6px 18px rgba(20,24,33,.05);
+  --r:14px;
+  /* couleur du niveau en cours, réécrite élément par élément */
+  --c:#4459E8; --cs:#EAECFD;
+}
+
+*{box-sizing:border-box}
+body{
+  margin:0; background:var(--paper); color:var(--ink);
+  font-family:"Public Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  font-size:16px; line-height:1.5; -webkit-text-size-adjust:100%;
+}
+#app{max-width:640px;margin:0 auto;padding:0 16px 112px}
+h1,h2,h3,.disp{font-family:Archivo,system-ui,sans-serif;letter-spacing:-.01em;text-wrap:balance;margin:0}
+.num{font-family:"IBM Plex Mono",ui-monospace,monospace;font-variant-numeric:tabular-nums}
+
+header.top{
+  position:sticky;top:0;z-index:20;background:var(--paper);
+  padding:18px 0 12px;border-bottom:1px solid var(--line);
+  display:flex;align-items:center;gap:12px;
+}
+header.top h1{font-size:22px;font-weight:800;min-width:0}
+header.top .sub{display:block;font-family:"Public Sans",sans-serif;font-size:11px;font-weight:600;
+  color:var(--ink-3);letter-spacing:.08em;text-transform:uppercase}
+header.top.tinted{border-bottom:2px solid var(--c)}
+header.top.tinted .sub{color:var(--c)}
+header.top.tinted h1{color:var(--c)}
+.backbtn{border:1px solid var(--line-strong);background:var(--surface);color:var(--ink);
+  width:44px;height:44px;border-radius:12px;font-size:20px;flex:none}
+
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow)}
+.stack{display:flex;flex-direction:column;gap:12px}
+.row{display:flex;align-items:center;gap:10px}
+.grow{flex:1;min-width:0}
+.muted{color:var(--ink-3)}
+.eyebrow{font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--c)}
+.sect{margin-top:24px}
+.sect > .eyebrow{margin-bottom:10px;display:block}
+.empty{padding:26px 18px;text-align:center;color:var(--ink-3);font-size:14px;line-height:1.5;
+  border:1px dashed var(--line-strong);border-radius:var(--r)}
+.truncate{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:8px}
+
+.btn{min-height:48px;padding:0 18px;border-radius:12px;border:1px solid var(--line-strong);
+  background:var(--surface);color:var(--ink);font-weight:600;display:inline-flex;
+  align-items:center;justify-content:center;gap:8px}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+.btn.ghost{background:transparent;border-color:transparent;color:var(--ink-3)}
+.btn.danger{color:var(--alert);border-color:var(--alert);background:transparent}
+.btn.wide{width:100%}
+.btn.sm{min-height:38px;padding:0 12px;font-size:14px;border-radius:10px}
+
+input[type=text],input[type=date],input[type=number],select,textarea{
+  width:100%;min-height:48px;padding:10px 12px;border-radius:12px;
+  border:1px solid var(--line-strong);background:var(--surface)}
+textarea{min-height:96px;resize:vertical;line-height:1.45}
+label.field{display:block}
+label.field > span{display:block;font-size:11px;font-weight:600;color:var(--ink-3);
+  margin-bottom:6px;letter-spacing:.06em;text-transform:uppercase}
+
+.badge{display:inline-flex;align-items:center;gap:5px;padding:3px 9px;border-radius:999px;
+  font-size:12px;font-weight:600;border:1px solid transparent;white-space:nowrap}
+.b-accent{background:var(--accent-soft);color:var(--accent-ink)}
+.b-warn{background:var(--warn-soft);color:var(--warn)}
+.b-alert{background:var(--alert-soft);color:var(--alert)}
+.b-ok{background:var(--ok-soft);color:var(--ok)}
+.b-quiet{background:var(--surface-2);color:var(--ink-3)}
+
+.course{display:flex;align-items:stretch;width:100%;text-align:left;
+  background:var(--surface);border:1px solid var(--line);border-left:5px solid var(--c);
+  border-radius:var(--r);box-shadow:var(--shadow);overflow:hidden;padding:0}
+.course .slot{flex:none;width:64px;background:var(--cs);border-right:1px solid var(--line);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;padding:14px 0}
+.course .slot b{font-family:Archivo;font-size:15px;font-weight:700;color:var(--c)}
+.course .slot span{font-size:10px;color:var(--c);letter-spacing:.04em;font-weight:600}
+.course .body{padding:14px;flex:1;min-width:0}
+.course .cname{font-family:Archivo;font-weight:700;font-size:19px;display:block;color:var(--c)}
+.course .capsa{font-size:13px;color:var(--ink-2);margin-top:2px;display:block}
+.chev{color:var(--ink-3);font-size:20px;flex:none}
+.course .chev{align-self:center;padding-right:14px}
+
+.plist{display:flex;flex-direction:column;gap:8px}
+.prow{display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--surface);
+  border:1px solid var(--line);border-radius:12px;width:100%;text-align:left}
+.prow .nm{font-weight:600}
+.prow .meta{font-size:12px;color:var(--ink-3)}
+.avatar{flex:none;width:38px;height:38px;border-radius:11px;background:var(--cs);
+  display:grid;place-items:center;font-family:Archivo;font-weight:700;font-size:13px;color:var(--c)}
+.avatar.warn{background:var(--warn-soft);color:var(--warn);box-shadow:inset 0 0 0 1.5px var(--warn)}
+.avatar.alert{background:var(--alert-soft);color:var(--alert);box-shadow:inset 0 0 0 1.5px var(--alert)}
+.prow.tinted{border-left:4px solid var(--c)}
+.b-classe{background:var(--cs);color:var(--c)}
+
+/* Fiche de séance du jour */
+.fiche{background:var(--surface);border:1px solid var(--line);border-left:5px solid var(--c);
+  border-radius:var(--r);box-shadow:var(--shadow);padding:14px}
+.fiche-num{flex:none;background:var(--cs);color:var(--c);border-radius:12px;padding:8px 12px;
+  font-size:11px;font-weight:600;text-align:center;line-height:1.15;text-transform:uppercase;letter-spacing:.06em}
+.fiche-num b{display:block;font-family:"IBM Plex Mono",monospace;font-size:24px;letter-spacing:0}
+.fiche-num span{font-size:11px;opacity:.8}
+.fiche-titre{font-family:Archivo;font-size:17px;line-height:1.25;display:block}
+.fiche p{margin:14px 0 0;font-size:14px;line-height:1.5}
+.fiche .eyebrow{display:block;margin-bottom:3px}
+.fiche-mat{color:var(--ink-2)}
+.fiche-der{margin-top:14px}
+.der-l{display:block;font-size:14px;line-height:1.45;padding:7px 0 7px 16px;position:relative;
+  border-top:1px solid var(--line)}
+.der-l:first-of-type{border-top:0}
+.der-l::before{content:"";position:absolute;left:2px;top:15px;width:6px;height:6px;
+  border-radius:50%;background:var(--c)}
+
+/* Groupes de niveau */
+.grp{display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--surface);
+  border:1px solid var(--line);border-left:4px solid var(--c);border-radius:12px}
+.grp b{font-size:15px}
+.grp .meta{font-size:12px;color:var(--ink-3)}
+.gpast{flex:none;width:34px;height:34px;border-radius:10px;background:var(--cs);color:var(--c);
+  display:grid;place-items:center;font-family:Archivo;font-weight:800;font-size:15px}
+.erow{display:flex;align-items:center;gap:10px;width:100%;text-align:left;padding:9px 12px;
+  background:var(--cs);border:1px solid var(--c);border-radius:12px}
+.erow b{font-size:14px;font-weight:600;color:var(--ink)}
+.erow .meta{font-size:12px;color:var(--c);font-weight:600}
+.erow.hors{background:var(--surface);border-color:var(--line)}
+.erow.hors .gpast{background:var(--surface-2);color:var(--ink-3)}
+.erow.hors .meta{color:var(--ink-3);font-weight:400}
+.gtag{flex:none;font-size:11px;font-weight:700;padding:3px 8px;border-radius:999px;
+  background:var(--cs);color:var(--c);max-width:96px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.chip[style]{border-color:var(--c);color:var(--c)}
+.chip[style][aria-pressed="true"]{background:var(--c);border-color:var(--c);color:#fff}
+
+/* Liste des séances du cycle */
+.seance-l{display:flex;align-items:center;gap:12px;width:100%;text-align:left;padding:10px 12px;
+  background:var(--surface);border:1px solid var(--line);border-radius:12px}
+.seance-l .sn{flex:none;width:34px;height:34px;border-radius:10px;background:var(--surface-2);
+  color:var(--ink-3);display:grid;place-items:center;
+  font-family:"IBM Plex Mono",monospace;font-weight:600;font-size:15px}
+.seance-l b{font-size:14px;font-weight:600}
+.seance-l .meta{font-size:12px;color:var(--ink-3)}
+.seance-l.faite{opacity:.62}
+.seance-l.faite .sn{background:var(--ok-soft);color:var(--ok)}
+.seance-l.auj{border-color:var(--c);border-left:4px solid var(--c);background:var(--cs)}
+.seance-l.auj .sn{background:var(--c);color:#fff}
+
+.srow{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:10px 12px}
+.srow.abs{opacity:.55}
+.srow .top{display:flex;align-items:center;gap:10px}
+.linkish{border:0;background:none;text-align:left;padding:0;min-width:0}
+.acts{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap}
+.act{flex:1;min-width:66px;min-height:42px;border-radius:10px;border:1px solid var(--line-strong);
+  background:var(--surface);font-size:13px;font-weight:600;display:flex;align-items:center;justify-content:center}
+.act.oubli[aria-pressed="true"]{background:var(--warn-soft);border-color:var(--warn);color:var(--warn)}
+.act.absent[aria-pressed="true"]{background:var(--alert-soft);border-color:var(--alert);color:var(--alert)}
+.act.disp[aria-pressed="true"]{background:var(--accent-soft);border-color:var(--accent);color:var(--accent-ink)}
+.act.rem[data-has="1"]{background:var(--ok-soft);border-color:var(--ok);color:var(--ok)}
+
+.dots{display:inline-flex;gap:3px;align-items:center;vertical-align:middle}
+.dot{width:7px;height:7px;border-radius:50%;background:var(--line-strong)}
+.dot.on{background:var(--warn)}
+.dot.on.max{background:var(--alert)}
+
+.hero{padding:18px;border-radius:var(--r);background:var(--surface);border:1px solid var(--line);
+  border-top:5px solid var(--c);box-shadow:var(--shadow)}
+.hero .nm{font-family:Archivo;font-size:24px;font-weight:800;line-height:1.15;color:var(--c)}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:14px}
+.stat{background:var(--surface-2);border-radius:12px;padding:10px;text-align:center}
+.stat b{display:block;font-family:"IBM Plex Mono",monospace;font-size:21px;font-weight:600;line-height:1.2}
+.stat span{font-size:10px;color:var(--ink-3);letter-spacing:.06em}
+.stat.is-note{background:var(--accent-soft)} .stat.is-note b{color:var(--accent-ink)}
+.stat.is-rem{background:var(--ok-soft)} .stat.is-rem b{color:var(--ok)}
+.stat.is-alert{background:var(--alert-soft)} .stat.is-alert b{color:var(--alert)}
+.stat.is-warn{background:var(--warn-soft)} .stat.is-warn b{color:var(--warn)}
+
+.sanction{border:1px solid var(--alert);background:var(--alert-soft);color:var(--alert);
+  border-radius:var(--r);padding:14px;display:flex;gap:12px;align-items:flex-start}
+.sanction b{font-family:Archivo;display:block;font-size:15px}
+.sanction p{margin:4px 0 0;font-size:13px;line-height:1.4;color:var(--ink-2)}
+
+.tabs{display:flex;gap:4px;background:var(--surface-2);padding:4px;border-radius:12px;margin-top:20px}
+.tabs button{flex:1;min-height:40px;border:0;background:transparent;border-radius:9px;
+  font-size:14px;font-weight:600;color:var(--ink-3)}
+.tabs button[aria-selected="true"]{background:var(--c);color:#fff;box-shadow:var(--shadow)}
+
+.item{padding:12px;border:1px solid var(--line);border-radius:12px;background:var(--surface)}
+.item .when{font-size:12px;color:var(--ink-3)}
+.item p{margin:6px 0 0;font-size:14px;line-height:1.45}
+
+.note-line{display:flex;align-items:center;gap:12px;padding:12px;border:1px solid var(--line);
+  border-radius:12px;background:var(--surface)}
+.note-val{font-family:"IBM Plex Mono",monospace;font-weight:600;font-size:20px;flex:none}
+.note-val small{font-size:12px;color:var(--ink-3);font-weight:500}
+
+.comp{padding:12px;border:1px solid var(--line);border-radius:12px;background:var(--surface)}
+.comp .lbl{font-weight:600;font-size:14px}
+.levels{display:flex;gap:5px;margin-top:9px}
+.lv{flex:1;min-height:44px;border-radius:9px;border:1px solid var(--line-strong);
+  background:var(--surface);font-family:Archivo;font-weight:700;font-size:13px;color:var(--ink-3)}
+.lv[aria-pressed="true"]{color:#fff}
+.lv.lv1[aria-pressed="true"]{background:var(--alert);border-color:var(--alert)}
+.lv.lv2[aria-pressed="true"]{background:var(--warn);border-color:var(--warn)}
+.lv.lv3[aria-pressed="true"]{background:var(--accent);border-color:var(--accent)}
+.lv.lv4[aria-pressed="true"]{background:var(--ok);border-color:var(--ok)}
+.lv-legend{font-size:12px;color:var(--ink-3);margin-top:8px;line-height:1.4}
+
+nav.tabbar{position:fixed;left:0;right:0;bottom:0;z-index:30;background:var(--surface);
+  border-top:1px solid var(--line);padding:6px 8px calc(6px + env(safe-area-inset-bottom));display:flex}
+nav.tabbar button{flex:1;border:0;background:transparent;color:var(--ink-3);min-height:54px;
+  border-radius:12px;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:3px;font-size:10.5px;font-weight:600;padding:0 2px}
+nav.tabbar .ico{position:relative;display:block;line-height:0}
+.pastille{position:absolute;top:-5px;right:-9px;min-width:17px;height:17px;padding:0 4px;
+  border-radius:999px;background:var(--alert);color:#fff;font-size:10px;font-weight:700;
+  display:grid;place-items:center;line-height:1}
+
+/* Rappels */
+.rap{display:flex;align-items:flex-start;gap:10px;padding:11px 12px;background:var(--surface);
+  border:1px solid var(--line);border-radius:12px}
+.rap b{font-size:15px;font-weight:600;line-height:1.3;display:block;margin-bottom:5px}
+.rap .meta{font-size:12px;color:var(--ink-3);margin-right:4px}
+.rap .badge{margin-right:4px}
+.rap.fait{opacity:.5}
+.rap.fait b{text-decoration:line-through}
+.rnote{display:block;font-size:13px;color:var(--ink-2);margin-top:7px;line-height:1.45}
+.coche{flex:none;width:28px;height:28px;border-radius:9px;border:2px solid var(--line-strong);
+  background:var(--surface);color:#fff;font-size:15px;font-weight:700;line-height:1;
+  display:grid;place-items:center;margin-top:1px}
+.coche.on{background:var(--ok);border-color:var(--ok)}
+.trouve{padding:10px 12px;background:var(--surface);border:1px solid var(--line);border-radius:12px}
+.trouve .check{margin:0}
+
+/* Documents */
+.passage{display:block;width:100%;text-align:left;padding:12px;background:var(--surface);
+  border:1px solid var(--line);border-radius:12px}
+.passage .badge{margin-bottom:7px}
+.ptxt{display:block;font-size:14px;line-height:1.5;color:var(--ink-2)}
+mark{background:#FDE68A;color:var(--ink);padding:0 2px;border-radius:3px;font-weight:600}
+.doctxt{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);
+  padding:16px;box-shadow:var(--shadow)}
+.doctxt p{margin:0 0 12px;font-size:14.5px;line-height:1.6}
+.doctxt p:last-child{margin-bottom:0}
+nav.tabbar button[aria-current="true"]{color:var(--accent-ink);background:var(--accent-soft)}
+nav.tabbar svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:1.9;
+  stroke-linecap:round;stroke-linejoin:round}
+
+.scrim{position:fixed;inset:0;background:rgba(20,24,33,.5);z-index:40;display:flex;
+  align-items:flex-end;justify-content:center}
+.sheet{background:var(--paper);width:100%;max-width:640px;border-radius:18px 18px 0 0;
+  padding:18px 16px calc(20px + env(safe-area-inset-bottom));max-height:88vh;overflow:auto;
+  box-shadow:0 -8px 40px rgba(0,0,0,.25)}
+.sheet h3{font-size:19px;font-weight:700}
+@media (prefers-reduced-motion:no-preference){
+  .sheet{animation:up .22s cubic-bezier(.2,.8,.3,1)}
+  @keyframes up{from{transform:translateY(18px);opacity:.4}to{transform:none;opacity:1}}
+}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:88px;z-index:60;
+  background:var(--ink);color:var(--paper);padding:11px 16px;border-radius:12px;
+  font-size:14px;font-weight:600;box-shadow:var(--shadow);max-width:88%;text-align:center}
+.check{width:24px;height:24px;min-height:0;flex:none}
+.edt-line{display:flex;gap:10px;padding:8px 0;border-bottom:1px solid var(--line);align-items:flex-start;font-size:13px}
+.edt-line:last-child{border-bottom:0}
+.edt-line b.j{width:78px;flex:none;text-transform:capitalize}
+
+/* Ateliers de performance */
+.chipbar{display:flex;gap:6px;flex-wrap:wrap}
+.chip{min-height:40px;padding:0 12px;border-radius:999px;border:1px solid var(--line-strong);
+  background:var(--surface);color:var(--ink);font-size:14px;font-weight:600}
+.perf-l{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:10px 12px}
+.perf-l .nm{font-weight:600;font-size:14px}
+.essais{display:flex;gap:6px;align-items:center;margin-top:8px}
+.essais input{min-height:46px;text-align:center;padding:6px 2px;font-family:"IBM Plex Mono",monospace;
+  font-variant-numeric:tabular-nums;flex:1;min-width:0}
+.best{flex:none;min-width:74px;text-align:center;border-radius:10px;padding:9px 6px;
+  font-family:"IBM Plex Mono",monospace;font-weight:600;font-size:15px;
+  background:var(--ok-soft);color:var(--ok)}
+.best.vide{background:var(--surface-2);color:var(--ink-3)}
+.rang{flex:none;width:32px;height:32px;border-radius:10px;background:var(--surface-2);color:var(--ink-3);
+  display:grid;place-items:center;font-family:Archivo;font-weight:800;font-size:14px}
+.rang.podium{background:#FBF0D2;color:#8A6508}
+
+/* Dispenses */
+.disp-c{background:var(--surface);border:1px solid var(--line);border-left:4px solid var(--accent);
+  border-radius:12px;padding:11px 12px}
+.disp-c.finie{border-left-color:var(--line-strong);opacity:.62}
+.disp-c b{font-size:14px;font-weight:600;display:block}
+.disp-c .meta{font-size:12px;color:var(--ink-3)}
+.disp-c .mot{display:block;font-size:13px;color:var(--ink-2);margin-top:6px;line-height:1.4}
+.vign{flex:none;width:52px;height:52px;border-radius:10px;object-fit:cover;
+  border:1px solid var(--line-strong);background:var(--surface-2);padding:0;display:block}
+.pleine{position:fixed;inset:0;background:rgba(10,12,16,.94);z-index:70;display:flex;
+  align-items:center;justify-content:center;padding:16px}
+.pleine img{max-width:100%;max-height:100%;object-fit:contain;border-radius:8px}
+.pleine .fermer{position:absolute;top:calc(12px + env(safe-area-inset-top));right:12px;
+  width:44px;height:44px;border-radius:12px;border:0;background:rgba(255,255,255,.16);color:#fff;font-size:20px}
+.jauge{height:6px;border-radius:999px;background:var(--surface-2);overflow:hidden;margin-top:8px}
+.jauge span{display:block;height:100%;background:var(--accent)}
+.jauge.pleine-alerte span{background:var(--alert)}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<nav class="tabbar" id="nav"></nav>
+
+<script>
+"use strict";
+
+/* ══════════ Modèle ══════════ */
+var KEY = "carnet-eps-v1";
+function uid(){ return Math.random().toString(36).slice(2,10); }
+
+var NIVEAUX = [
+  {n:1, court:"MI",  long:"Maîtrise insuffisante"},
+  {n:2, court:"MF",  long:"Maîtrise fragile"},
+  {n:3, court:"MS",  long:"Maîtrise satisfaisante"},
+  {n:4, court:"TBM", long:"Très bonne maîtrise"}
+];
+
+/* Emploi du temps relevé sur Pronote.
+   variante "A" = semaines impaires (S37, S39…), "B" = semaines paires (S38, S40…) */
+var EDT = [
+  {jour:1, slot:"M1-M2", classe:"6E1"},
+  {jour:1, slot:"M3-M4", classe:"5E1"},
+  {jour:1, slot:"S1-S2", classe:"5E2"},
+  {jour:2, slot:"M1-M2", classe:"4E4"},
+  {jour:2, slot:"M3-M4", classe:"3E2"},
+  {jour:4, slot:"M1-M2", classe:"5E1",    variante:"A"},
+  {jour:4, slot:"M1-M2", classe:"5E2",    variante:"B"},
+  {jour:4, slot:"M3-M4", classe:"4E4P.2", variante:"A"},
+  {jour:4, slot:"M3-M4", classe:"4E4P.1", variante:"B"},
+  {jour:5, slot:"M1-M2", classe:"3E2P.2", variante:"A"},
+  {jour:5, slot:"M1-M2", classe:"3E2P.1", variante:"B"},
+  {jour:5, slot:"M3-M4", classe:"6E1"}
+];
+/* Une couleur par niveau : la classe se reconnaît sans lire son nom. */
+var COULEURS = {
+  "6": ["#0B7A72", "#DEF1EF"],   /* 6e — vert lagon */
+  "5": ["#6B45D9", "#EBE4FC"],   /* 5e — violet */
+  "4": ["#C2600B", "#FCEEDD"],   /* 4e — orange brûlé */
+  "3": ["#C42C63", "#FCE3EC"]    /* 3e — framboise */
+};
+function couleurClasse(nom){ return COULEURS[String(nom).charAt(0)] || ["#4459E8", "#EAECFD"]; }
+function styleClasse(nom){
+  var c = couleurClasse(nom);
+  return ' style="--c:' + c[0] + ';--cs:' + c[1] + '"';
+}
+
+var SLOTS = {"M1-M2":"08h–10h", "M3-M4":"10h–12h", "S1-S2":"14h–16h", "S3-S4":"16h–18h"};
+var ORDRE_SLOT = ["M1-M2","M3-M4","S1-S2","S3-S4"];
+var JOURS = ["lundi","mardi","mercredi","jeudi","vendredi"];
+
+/* Aucune liste d'élève n'est écrite dans le code : ce fichier est publié sur
+   un dépôt public, et les noms d'élèves sont des données personnelles de
+   mineurs. Les listes arrivent par Réglages → Importer une sauvegarde, et ne
+   quittent jamais le téléphone. Format attendu si on en remet un jour :
+   "NOM|Prénom", le séparateur évitant toute erreur sur les noms composés. */
+var ELEVES_REELS = {
+  "6E1": [], "5E1": [], "5E2": [], "4E4": [], "3E2": []
+};
+
+/* Groupes de besoin : ce sont les élèves de la classe entière, pas des fiches
+   séparées. Un oubli saisi en 4E4P.1 compte donc aussi en 4E4. */
+var GROUPES = {
+  "4E4P.1": {parent:"4E4", membres:[]},
+  "4E4P.2": {parent:"4E4", membres:[]},
+  "3E2P.1": {parent:"3E2", membres:[]},
+  "3E2P.2": {parent:"3E2", membres:[]}
+};
+
+/* Associe les libellés "NOM|Prénom" d'un groupe aux fiches de la classe parente. */
+function membresDepuisLibelles(classes, eleves, nomGroupe){
+  var g = GROUPES[nomGroupe];
+  if(!g) return null;
+  var parent = classes.filter(function(c){ return c.nom === g.parent; })[0];
+  if(!parent) return null;
+  var ids = [];
+  g.membres.forEach(function(lib){
+    var p = lib.split("|");
+    var e = eleves.filter(function(x){
+      return x.classeId === parent.id && x.nom === p[0] && x.prenom === (p[1] || "");
+    })[0];
+    if(e) ids.push(e.id);
+  });
+  return ids;
+}
+
+function elevesReelsDe(classeId, nomClasse){
+  return (ELEVES_REELS[nomClasse] || []).map(function(s){
+    var p = s.split("|");
+    return {id:uid(), classeId:classeId, nom:p[0], prenom:p[1] || ""};
+  });
+}
+
+function defaults(){
+  var noms = ["6E1","5E1","5E2","4E4","3E2","3E2P.1","3E2P.2","4E4P.1","4E4P.2"];
+  var classes = noms.map(function(n){
+    var c = {id:uid(), nom:n, noter:n.charAt(0)!=="6"};
+    if(GROUPES[n]) c.groupe = true;
+    return c;
+  });
+  var eleves = [];
+  classes.forEach(function(c){ eleves = eleves.concat(elevesReelsDe(c.id, c.nom)); });
+  classes.forEach(function(c){
+    if(c.groupe) c.membres = membresDepuisLibelles(classes, eleves, c.nom) || [];
+  });
+  return {
+    classes: classes,
+    eleves: eleves, apsa: [], events: [], notes: [], comps: [], rappels: [], docs: [],
+    dispenses: [], perfs: [], exceptions: [],
+    competences: [
+      {id:uid(), lbl:"Produire une performance, s'engager"},
+      {id:uid(), lbl:"Méthodes et outils pour apprendre"},
+      {id:uid(), lbl:"Respect des règles et sécurité"},
+      {id:uid(), lbl:"Coopérer, aider, arbitrer"}
+    ],
+    seuil: 3
+  };
+}
+
+var S;
+try { S = JSON.parse(localStorage.getItem(KEY)) || defaults(); } catch(e){ S = defaults(); }
+(function(){ var d = defaults(); for (var k in d) if (S[k] === undefined) S[k] = d[k]; })();
+
+function save(){
+  try { localStorage.setItem(KEY, JSON.stringify(S)); return true; }
+  catch(e){ toast("Sauvegarde impossible : stockage plein"); return false; }
+}
+
+/* ── Installation automatique des listes Pronote ──
+   S'exécute une seule fois, à la première ouverture après mise à jour.
+   Une fiche déjà présente sous le même nom est réutilisée : ses oublis,
+   remarques, notes et compétences sont conservés. Les fiches absentes des
+   listes (élèves de démonstration) sont retirées avec leurs données. */
+var VERSION_LISTES = 2;
+function installerListesReelles(){
+  var gardes = {}, nouveaux = [];
+
+  S.classes.forEach(function(cl){
+    var libelles = ELEVES_REELS[cl.nom];
+    if(!libelles) return;
+    libelles.forEach(function(lib){
+      var p = lib.split("|"), nom = p[0], prenom = p[1] || "";
+      var exist = S.eleves.filter(function(e){
+        return e.classeId === cl.id && e.nom === nom && e.prenom === prenom;
+      })[0];
+      if(exist){ gardes[exist.id] = true; nouveaux.push(exist); }
+      else nouveaux.push({id:uid(), classeId:cl.id, nom:nom, prenom:prenom});
+    });
+  });
+
+  if(!nouveaux.length) return false;
+
+  var retires = S.eleves.filter(function(e){ return !gardes[e.id]; }).map(function(e){ return e.id; });
+  S.eleves = nouveaux;
+  if(retires.length){
+    S.events = S.events.filter(function(x){ return retires.indexOf(x.eleveId) < 0; });
+    S.notes  = S.notes.filter(function(x){ return retires.indexOf(x.eleveId) < 0; });
+    S.comps  = S.comps.filter(function(x){ return retires.indexOf(x.eleveId) < 0; });
+  }
+
+  S.classes.forEach(function(c){
+    if(GROUPES[c.nom]){
+      c.groupe = true;
+      c.membres = membresDepuisLibelles(S.classes, S.eleves, c.nom) || [];
+    }
+  });
+  return true;
+}
+
+if(S.versionListes !== VERSION_LISTES){
+  installerListesReelles();
+  S.versionListes = VERSION_LISTES;
+  save();
+}
+
+/* ── Documents du collège, transcrits depuis les originaux ── */
+var VERSION_DOCS = 3;
+var DOCS_COLLEGE = [];
+
+/* Calendrier prévisionnel 2026-2027, transcrit ligne à ligne. */
+var CALENDRIER = [];
+
+if(S.versionDocs !== VERSION_DOCS){
+  if(!S.docs) S.docs = [];
+  if(!S.rappels) S.rappels = [];
+  DOCS_COLLEGE.forEach(function(d){
+    var deja = S.docs.filter(function(x){ return x.titre === d.titre; })[0];
+    if(deja){ deja.cat = d.cat; deja.texte = d.texte; }
+    else S.docs.push({id:uid(), titre:d.titre, cat:d.cat, texte:d.texte, maj:AUJ()});
+  });
+  CALENDRIER.forEach(function(r){
+    var deja = S.rappels.filter(function(x){ return x.titre === r[1] && x.date === r[0]; })[0];
+    if(deja){
+      /* On complète une note restée vide, sans jamais écraser ce que j'ai écrit. */
+      if(!deja.note && r[2]) deja.note = r[2];
+      return;
+    }
+    S.rappels.push({id:uid(), titre:r[1], date:r[0], classeId:null, note:r[2], fait:false});
+  });
+  S.versionDocs = VERSION_DOCS;
+  save();
+}
+
+/* ── Cours exceptionnels ──
+   Remplacements, RCD, échanges de créneau : ils s'ajoutent à la journée sans
+   toucher à l'emploi du temps habituel, donc sans fausser le compte des séances
+   de cycle. */
+var VERSION_EXCEPTIONS = 1;
+var EXCEPTIONS_INITIALES = [];
+if(S.versionExceptions !== VERSION_EXCEPTIONS){
+  if(!S.exceptions) S.exceptions = [];
+  EXCEPTIONS_INITIALES.forEach(function(x){
+    var deja = S.exceptions.filter(function(y){
+      return y.date === x.date && y.slot === x.slot;
+    })[0];
+    if(deja) return;
+    S.exceptions.push({id:uid(), date:x.date, slot:x.slot, libelle:x.libelle, note:x.note});
+  });
+  S.versionExceptions = VERSION_EXCEPTIONS;
+  save();
+}
+
+/* Les groupes de niveau étaient d'abord rattachés à la classe : on les
+   bascule sur son APSA en cours, pour ne pas perdre une répartition. */
+if(!S.groupesParApsa){
+  S.classes.forEach(function(c){
+    if(!c.niveaux || !c.niveaux.length) return;
+    var cible = S.apsa.filter(function(a){ return a.classeId === c.id; })
+      .sort(function(a,b){ return (b.debut||"").localeCompare(a.debut||""); })[0];
+    if(cible && !(cible.niveaux || []).length){
+      cible.niveaux = c.niveaux;
+      cible.affect = c.affect || {};
+    }
+    delete c.niveaux; delete c.affect;
+  });
+  S.groupesParApsa = true;
+  save();
+}
+
+/* ══════════ Utilitaires ══════════ */
+function esc(s){
+  return String(s == null ? "" : s).replace(/[&<>"']/g, function(c){
+    return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c];
+  });
+}
+function iso(d){ var x = new Date(d); x.setMinutes(x.getMinutes() - x.getTimezoneOffset()); return x.toISOString().slice(0,10); }
+function AUJ(){ return iso(new Date()); }
+function frDate(s){ if(!s) return "—"; var p = s.split("-"); return p[2]+"/"+p[1]+"/"+p[0]; }
+function frLong(s){
+  return new Date(s+"T12:00:00").toLocaleDateString("fr-FR",{weekday:"long",day:"numeric",month:"long"});
+}
+function semaineISO(d){
+  var t = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+  t.setUTCDate(t.getUTCDate() + 4 - (t.getUTCDay() || 7));
+  return Math.ceil(((t - Date.UTC(t.getUTCFullYear(),0,1)) / 86400000 + 1) / 7);
+}
+function classeById(id){ return S.classes.filter(function(c){return c.id===id})[0]; }
+function classeByNom(n){ return S.classes.filter(function(c){return c.nom===n})[0]; }
+function eleveById(id){ return S.eleves.filter(function(e){return e.id===id})[0]; }
+function elevesDe(cid){
+  var c = classeById(cid), l;
+  if(c && c.membres){
+    /* Groupe de besoin : les fiches appartiennent à la classe entière. */
+    l = c.membres.map(eleveById).filter(Boolean);
+  } else {
+    l = S.eleves.filter(function(e){ return e.classeId === cid; });
+  }
+  return l.sort(function(a,b){ return (a.nom+a.prenom).localeCompare(b.nom+b.prenom,"fr"); });
+}
+function estGroupe(c){ return !!(c && c.membres); }
+
+/* ── Groupes de niveau, propres à chaque APSA ──
+   Les niveaux en natation n'ont rien à voir avec ceux en badminton :
+   ils sont donc rattachés au cycle, pas à la classe. */
+var TEINTES = [
+  ["#1D4ED8","#E3EAFD"], ["#047857","#DDF2EA"], ["#B45309","#FBEEDA"],
+  ["#BE185D","#FBE4EF"], ["#6D28D9","#EDE6FD"], ["#0E7490","#DEF0F5"]
+];
+function niveauxDe(ap){ return (ap && ap.niveaux) || []; }
+function teinte(i){ return TEINTES[i % TEINTES.length]; }
+function styleTeinte(i){ var t = teinte(i); return ' style="--c:'+t[0]+';--cs:'+t[1]+'"'; }
+function groupeIndexDe(ap, eleveId){
+  if(!ap || !ap.affect) return -1;
+  var id = ap.affect[eleveId];
+  if(!id) return -1;
+  var l = niveauxDe(ap);
+  for (var i = 0; i < l.length; i++) if(l[i].id === id) return i;
+  return -1;
+}
+function groupeDe(ap, eleveId){
+  var i = groupeIndexDe(ap, eleveId);
+  return i < 0 ? null : niveauxDe(ap)[i];
+}
+/* Un appui fait passer au groupe suivant, puis à « sans groupe ». */
+function cyclerGroupe(ap, eleveId){
+  var l = niveauxDe(ap);
+  if(!l.length) return;
+  if(!ap.affect) ap.affect = {};
+  var i = groupeIndexDe(ap, eleveId);
+  if(i + 1 >= l.length) delete ap.affect[eleveId];
+  else ap.affect[eleveId] = l[i + 1].id;
+  save();
+}
+function effectifGroupe(ap, classeId, gid){
+  return elevesDe(classeId).filter(function(e){ return ap.affect && ap.affect[e.id] === gid; }).length;
+}
+function sansGroupe(ap, classeId){
+  return elevesDe(classeId).filter(function(e){ return groupeIndexDe(ap, e.id) < 0; }).length;
+}
+/* APSA sur laquelle porter les groupes quand on arrive depuis la classe. */
+function apsaCourante(classeId){
+  return apsaEnCours(classeId, AUJ())
+    || S.apsa.filter(function(a){ return a.classeId === classeId; })
+        .sort(function(a,b){ return (b.debut||"").localeCompare(a.debut||""); })[0]
+    || null;
+}
+function classeParente(c){
+  if(!estGroupe(c)) return c;
+  var g = GROUPES[c.nom];
+  return (g && classeByNom(g.parent)) || c;
+}
+function initiales(e){ return ((e.nom[0]||"") + (e.prenom[0]||"")).toUpperCase(); }
+function nbOublis(eid){ return S.events.filter(function(x){return x.eleveId===eid && x.type==="oubli"}).length; }
+function oublisDepuisSanction(eid){
+  var evs = S.events.filter(function(x){ return x.eleveId===eid && (x.type==="oubli"||x.type==="sanction"); })
+    .sort(function(a,b){ return a.date.localeCompare(b.date) || a.id.localeCompare(b.id); });
+  var c = 0;
+  evs.forEach(function(e){ if(e.type==="sanction") c = 0; else c++; });
+  return c;
+}
+/* Une classe peut mener deux cycles en parallèle, un par créneau : le 6E1 fait
+   pratique artistique le lundi et sports collectifs le vendredi. Une APSA sans
+   créneau vaut pour tous les créneaux de la classe, comme avant. */
+function cleCreneau(date, slot){
+  return new Date(date+"T12:00:00").getDay() + "|" + slot;
+}
+function creneauxDe(classeNom){
+  return EDT.filter(function(c){ return c.classe === classeNom; })
+    .sort(function(a,b){ return (a.jour - b.jour) || (ORDRE_SLOT.indexOf(a.slot) - ORDRE_SLOT.indexOf(b.slot)); })
+    .map(function(c){
+      return {cle:c.jour + "|" + c.slot,
+              lbl:JOURS[c.jour - 1] + " " + c.slot
+                + (c.variante ? " (sem. " + (c.variante === "A" ? "impaire" : "paire") + ")" : "")};
+    });
+}
+function libelleCreneau(cle){
+  var p = String(cle).split("|");
+  return JOURS[(+p[0]) - 1] + " " + p[1];
+}
+function apsaEnCours(cid, date, slot){
+  var l = S.apsa.filter(function(a){
+    return a.classeId===cid && (!a.debut || a.debut<=date) && (!a.fin || a.fin>=date);
+  });
+  if(slot){
+    var cible = cleCreneau(date, slot);
+    var precis = l.filter(function(a){ return a.creneau === cible; });
+    if(precis.length) return precis[0];
+    return l.filter(function(a){ return !a.creneau; })[0] || null;
+  }
+  return l[0] || null;
+}
+function exceptionsDuJour(date){
+  return (S.exceptions || []).filter(function(x){ return x.date === date; })
+    .sort(function(a,b){ return ORDRE_SLOT.indexOf(a.slot) - ORDRE_SLOT.indexOf(b.slot); });
+}
+function coursDuJour(date){
+  var d = new Date(date+"T12:00:00"), j = d.getDay();
+  var par = semaineISO(d) % 2 === 1 ? "A" : "B";
+  return EDT.filter(function(c){ return c.jour===j && (!c.variante || c.variante===par); })
+    .sort(function(a,b){ return ORDRE_SLOT.indexOf(a.slot) - ORDRE_SLOT.indexOf(b.slot); });
+}
+/* ── Cycle de séances : un créneau de l'emploi du temps = une séance ── */
+function datesSeances(classeId, ap){
+  if(!ap || !ap.debut) return [];
+  var cl = classeById(classeId);
+  if(!cl) return [];
+  var fin = ap.fin || iso(new Date(new Date(ap.debut+"T12:00:00").getTime() + 120*86400000));
+  var l = [], d = new Date(ap.debut+"T12:00:00"), garde = 0;
+  while(iso(d) <= fin && garde++ < 400){
+    var jour = iso(d);
+    coursDuJour(jour).forEach(function(c){
+      if(c.classe !== cl.nom) return;
+      if(ap.creneau && ap.creneau !== cleCreneau(jour, c.slot)) return;
+      l.push({date:jour, slot:c.slot});
+    });
+    d.setDate(d.getDate() + 1);
+  }
+  return l;
+}
+function numeroSeance(classeId, ap, date){
+  var l = datesSeances(classeId, ap);
+  for (var i = 0; i < l.length; i++) if(l[i].date === date) return i + 1;
+  return null;
+}
+function ficheSeance(ap, num){
+  if(!ap || !ap.seances) return null;
+  return ap.seances.filter(function(s){ return s.num === num; })[0] || null;
+}
+function seanceDuJour(classeId, ap, date){
+  var num = numeroSeance(classeId, ap, date);
+  if(num == null) return null;
+  return {num:num, total:datesSeances(classeId, ap).length, fiche:ficheSeance(ap, num)};
+}
+
+function moyenne(eid){
+  var l = S.notes.filter(function(n){return n.eleveId===eid});
+  if(!l.length) return null;
+  var s = 0; l.forEach(function(n){ s += n.valeur / n.sur * 20; });
+  return (s / l.length).toFixed(1);
+}
+
+/* ══════════ Ateliers de performance ══════════
+   Trois essais par élève, on garde le meilleur. Selon l'épreuve, « meilleur »
+   veut dire la plus grande valeur (lancer, saut) ou la plus petite (course). */
+var EPREUVES = [
+  {id:"vortex",   nom:"Lancer de vortex",  unite:"m", pas:"0.1",  sens:"max", ph:"18,5"},
+  {id:"longueur", nom:"Saut en longueur",  unite:"m", pas:"0.01", sens:"max", ph:"3,45"},
+  {id:"sprint50", nom:"50 m",              unite:"s", pas:"0.01", sens:"min", ph:"8,20"}
+];
+function epreuveById(id){
+  return EPREUVES.filter(function(x){ return x.id === id; })[0] || EPREUVES[0];
+}
+/* Une performance appartient à l'élève, pas à la séance où elle a été mesurée :
+   elle reste donc affichée à tous les cours suivants, et se met à jour quand on
+   la remesure. La date retenue est celle de la dernière saisie. */
+function perfDe(eid, epId){
+  return (S.perfs || []).filter(function(p){
+    return p.eleveId === eid && p.epreuveId === epId;
+  }).sort(function(a,b){ return (b.date||"").localeCompare(a.date||""); })[0] || null;
+}
+function perfsDe(eid){
+  return (S.perfs || []).filter(function(p){ return p.eleveId === eid; })
+    .sort(function(a,b){ return b.date.localeCompare(a.date); });
+}
+function meilleurEssai(essais, sens){
+  var l = (essais || []).filter(function(v){ return typeof v === "number" && !isNaN(v); });
+  if(!l.length) return null;
+  return sens === "min" ? Math.min.apply(null, l) : Math.max.apply(null, l);
+}
+/* Virgule décimale : c'est ce que les élèves annoncent et ce qu'on tape vite. */
+function nombreFr(v){
+  if(v == null) return "";
+  return String(v).replace(".", ",");
+}
+function litNombre(txt){
+  var t = String(txt).replace(",", ".").trim();
+  if(!t) return null;
+  var n = parseFloat(t);
+  return isNaN(n) || n < 0 ? null : n;
+}
+function enregistrerEssai(eid, ep, date, apsaId, index, valeur){
+  if(!S.perfs) S.perfs = [];
+  var p = perfDe(eid, ep.id);
+  if(!p){
+    p = {id:uid(), eleveId:eid, epreuveId:ep.id, date:date,
+         apsaId:apsaId || null, essais:[null,null,null]};
+    S.perfs.push(p);
+  }
+  if(!p.essais) p.essais = [null,null,null];
+  p.essais[index] = valeur;
+  p.date = date;
+  if(apsaId) p.apsaId = apsaId;
+  /* Une fiche sans aucun essai ne sert à rien : on la retire. */
+  if(!p.essais.filter(function(v){ return v != null; }).length){
+    S.perfs = S.perfs.filter(function(x){ return x.id !== p.id; });
+  }
+  save();
+}
+
+/* ══════════ Dispenses de sport ══════════
+   Une dispense = un justificatif photographié, avec ses dates.
+   Elle n'est jamais supprimée toute seule : passé la date de fin, elle sort
+   simplement des classes du jour et bascule dans les dispenses terminées. */
+var ORIGINES = {medecin:"Certificat médical", parents:"Mot des parents"};
+
+function dispensesDe(eid){
+  return (S.dispenses || []).filter(function(d){ return d.eleveId === eid; })
+    .sort(function(a,b){ return (b.debut||"").localeCompare(a.debut||""); });
+}
+function dispenseActive(eid, date){
+  return (S.dispenses || []).filter(function(d){
+    return d.eleveId === eid && (!d.debut || d.debut <= date) && (!d.fin || d.fin >= date);
+  }).sort(function(a,b){ return (b.fin||"").localeCompare(a.fin||""); })[0] || null;
+}
+function dispensesEnCours(date){
+  return (S.dispenses || []).filter(function(d){
+    return (!d.debut || d.debut <= date) && (!d.fin || d.fin >= date);
+  }).sort(function(a,b){ return (a.fin||"").localeCompare(b.fin||""); });
+}
+function dispensesTerminees(date){
+  return (S.dispenses || []).filter(function(d){ return d.fin && d.fin < date; })
+    .sort(function(a,b){ return (b.fin||"").localeCompare(a.fin||""); });
+}
+
+/* Le stockage du navigateur tient environ 5 Mo : une photo brute suffirait à
+   le saturer et à faire échouer l'enregistrement des oublis et des notes.
+   On redimensionne donc avant d'enregistrer, jamais après. */
+var PHOTO_LARGEUR = 1200, PHOTO_QUALITE = 0.7, QUOTA_OCTETS = 4200000;
+
+function compresserPhoto(fichier, ok, ko){
+  var lecteur = new FileReader();
+  lecteur.onerror = function(){ ko("Photo illisible"); };
+  lecteur.onload = function(){
+    var img = new Image();
+    img.onerror = function(){ ko("Photo illisible"); };
+    img.onload = function(){
+      var l = img.width, ht = img.height;
+      if(l > PHOTO_LARGEUR){ ht = Math.round(ht * PHOTO_LARGEUR / l); l = PHOTO_LARGEUR; }
+      var cv = document.createElement("canvas");
+      cv.width = l; cv.height = ht;
+      cv.getContext("2d").drawImage(img, 0, 0, l, ht);
+      try { ok(cv.toDataURL("image/jpeg", PHOTO_QUALITE)); }
+      catch(e){ ko("Photo impossible à convertir"); }
+    };
+    img.src = lecteur.result;
+  };
+  lecteur.readAsDataURL(fichier);
+}
+function poidsDonnees(){
+  try { return JSON.stringify(S).length; } catch(e){ return 0; }
+}
+function poidsLisible(n){
+  return n > 900000 ? (n/1000000).toFixed(1) + " Mo" : Math.round(n/1000) + " Ko";
+}
+
+function voirPhoto(src){
+  var v = document.createElement("div");
+  v.className = "pleine";
+  v.innerHTML = '<button class="fermer" aria-label="Fermer">✕</button>';
+  var i = document.createElement("img");
+  i.src = src; i.alt = "Justificatif de dispense";
+  v.appendChild(i);
+  document.body.appendChild(v);
+  function fin(){ v.remove(); }
+  v.onclick = fin;
+  v.querySelector(".fermer").onclick = fin;
+}
+
+/* ══════════ État de navigation ══════════ */
+var view = {n:"jour", date:AUJ()};
+var ongletFiche = "suivi";
+var recherche = "";
+var sheet = null, toastT = null;
+var app = document.getElementById("app");
+var nav = document.getElementById("nav");
+
+function toast(msg){
+  Array.prototype.forEach.call(document.querySelectorAll(".toast"), function(t){ t.remove(); });
+  var el = document.createElement("div");
+  el.className = "toast"; el.textContent = msg; el.setAttribute("role","status");
+  document.body.appendChild(el);
+  clearTimeout(toastT); toastT = setTimeout(function(){ el.remove(); }, 2800);
+}
+function go(v){ view = v; window.scrollTo(0,0); render(); }
+function on(sel, fn){ var el = app.querySelector(sel); if(el) el.onclick = fn; }
+function each(sel, fn){ Array.prototype.forEach.call(app.querySelectorAll(sel), fn); }
+
+/* ══════════ Barre de navigation ══════════ */
+var ICONS = {
+  jour:'<svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M8 3v4M16 3v4M3 10h18"/></svg>',
+  classes:'<svg viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h10"/></svg>',
+  eleves:'<svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="3.4"/><path d="M5 20c1.2-3.6 4-5.2 7-5.2s5.8 1.6 7 5.2"/></svg>',
+  rappels:'<svg viewBox="0 0 24 24"><path d="M18 9a6 6 0 1 0-12 0c0 5-2 6-2 6h16s-2-1-2-6"/><path d="M10.3 20a2 2 0 0 0 3.4 0"/></svg>',
+  docs:'<svg viewBox="0 0 24 24"><path d="M6 3h8l4 4v14H6z"/><path d="M14 3v5h4M9 12h6M9 16h6"/></svg>',
+  reglages:'<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M2 12h3M19 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1"/></svg>'
+};
+var RACINE = {jour:"jour", seance:"jour", atelier:"jour", cycle:"classes", groupes:"classes",
+              classes:"classes", classe:"classes", rappels:"rappels",
+              docs:"docs", doc:"docs", reglages:"docs",
+              eleves:"eleves", eleve:"eleves", dispenses:"eleves"};
+function renderNav(){
+  var items = [["jour","Séances"],["classes","Classes"],["eleves","Élèves"],
+               ["rappels","Rappels"],["docs","Docs"]];
+  var r = RACINE[view.n] || "jour";
+  var urgents = rappelsActifs().filter(function(x){ return x.date <= AUJ(); }).length;
+  nav.innerHTML = items.map(function(it){
+    var pastille = (it[0] === "rappels" && urgents) ? '<span class="pastille">'+urgents+'</span>' : '';
+    return '<button data-tab="'+it[0]+'" aria-current="'+(r===it[0])+'">'
+      + '<span class="ico">'+ICONS[it[0]]+pastille+'</span><span>'+it[1]+'</span></button>';
+  }).join("");
+  Array.prototype.forEach.call(nav.querySelectorAll("[data-tab]"), function(b){
+    b.onclick = function(){ recherche = ""; go({n:b.dataset.tab, date:AUJ()}); };
+  });
+}
+function header(titre, sur, retour, classeNom){
+  return '<header class="top' + (classeNom ? ' tinted' : '') + '"'
+    + (classeNom ? styleClasse(classeNom) : '') + '>'
+    + (retour ? '<button class="backbtn" id="back" aria-label="Retour">‹</button>' : '')
+    + '<h1 class="grow"><span class="sub">'+esc(sur||"")+'</span>'+esc(titre)+'</h1></header>';
+}
+function dots(c){
+  var s = '<span class="dots">';
+  for (var i=0;i<S.seuil;i++) s += '<span class="dot'+(i<c?" on":"")+(c>=S.seuil?" max":"")+'"></span>';
+  return s + '</span>';
+}
+
+/* ══════════ Vue : séances du jour ══════════ */
+function vueJour(){
+  var date = view.date, cours = coursDuJour(date), d = new Date(date+"T12:00:00");
+  var sem = semaineISO(d);
+  var h = header(frLong(date), "Semaine "+sem+" · "+(sem%2 ? "impaire" : "paire"), false);
+
+  h += '<div class="row" style="margin:14px 0 0">'
+    + '<button class="btn sm" id="prevj">‹ Veille</button>'
+    + '<button class="btn sm grow" id="auj">Aujourd\'hui</button>'
+    + '<button class="btn sm" id="nextj">Lendemain ›</button></div>';
+
+  var rapJour = rappelsDuJour(date).concat(date === AUJ() ? rappelsEnRetard(date) : []);
+  if(rapJour.length){
+    h += '<div class="sect"><span class="eyebrow">À ne pas oublier</span><div class="stack" style="gap:8px">'
+      + rapJour.map(ligneRappel).join("") + '</div></div>';
+  }
+
+  var excep = exceptionsDuJour(date);
+  /* Cours habituels et créneaux exceptionnels sont mélangés dans l'ordre horaire :
+     c'est la journée réelle qu'il faut lire d'un coup d'œil, pas deux listes. */
+  var agenda = cours.map(function(c){ return {slot:c.slot, cours:c}; })
+    .concat(excep.map(function(x){ return {slot:x.slot, excep:x}; }))
+    .sort(function(a,b){ return ORDRE_SLOT.indexOf(a.slot) - ORDRE_SLOT.indexOf(b.slot); });
+
+  h += '<div class="sect"><div class="stack">';
+  if(!agenda.length) h += '<div class="empty">Pas de cours d\'EPS ce jour-là.</div>';
+  agenda.forEach(function(it){
+    if(it.excep){
+      var x = it.excep;
+      h += '<button class="course" data-exc="'+x.id+'" style="--c:#8A6508;--cs:#FBF0D2">'
+        + '<span class="slot"><b>'+esc(x.slot.split("-")[0])+'</b>'
+        + '<span>'+esc(SLOTS[x.slot] || x.slot)+'</span></span>'
+        + '<span class="body"><span class="badge b-warn">Exceptionnel</span>'
+        + '<span class="cname">'+esc(x.libelle)+'</span>'
+        + (x.note ? '<span class="capsa">'+esc(x.note)+'</span>' : '')
+        + '</span><span class="chev">›</span></button>';
+      return;
+    }
+    var c = it.cours;
+    var cl = classeByNom(c.classe);
+    var ap = cl ? apsaEnCours(cl.id, date, c.slot) : null;
+    var n = cl ? elevesDe(cl.id).length : 0;
+    h += '<button class="course" data-cours="'+esc(c.classe)+'|'+c.slot+'"'+styleClasse(c.classe)+'>'
+      + '<span class="slot"><b>'+c.slot.split("-")[0]+'</b><span>'+SLOTS[c.slot]+'</span></span>'
+    var sq = (cl && ap) ? seanceDuJour(cl.id, ap, date) : null;
+    h += '<span class="body"><span class="cname">'+esc(c.classe)+'</span>'
+      + '<span class="capsa">'+(ap ? esc(ap.nom) : '<span class="muted">APSA à définir</span>')
+      + ' · '+n+' élève'+(n>1?"s":"")+'</span>'
+      + (sq ? '<span class="capsa"><b>Séance '+sq.num+'/'+sq.total+'</b>'
+          + (sq.fiche && sq.fiche.titre ? ' — '+esc(sq.fiche.titre) : ' — à préparer')+'</span>' : '')
+      + '</span><span class="chev">›</span></button>';
+  });
+  h += '</div><button class="btn wide" id="addexc" style="margin-top:10px">'
+    + '+ Cours exceptionnel</button></div>';
+
+  var duJour = cours.map(function(c){ return c.classe; });
+  var alertes = S.eleves.filter(function(e){
+    var c = classeById(e.classeId);
+    return c && duJour.indexOf(c.nom) >= 0 && oublisDepuisSanction(e.id) >= S.seuil;
+  });
+  if(alertes.length){
+    h += '<div class="sect"><span class="eyebrow">Sanctions à poser</span><div class="stack">';
+    alertes.forEach(function(e){
+      h += '<div class="sanction"><span style="font-size:20px">⚠</span><div class="grow">'
+        + '<b>'+esc(e.nom.toUpperCase())+' '+esc(e.prenom)+'</b>'
+        + '<p>'+oublisDepuisSanction(e.id)+' oublis · '+esc(classeById(e.classeId).nom)+'</p>'
+        + '<div class="row" style="margin-top:10px">'
+        + '<button class="btn sm" data-fiche="'+e.id+'">Voir la fiche</button>'
+        + '<button class="btn sm primary" data-sanction="'+e.id+'">Sanction posée</button>'
+        + '</div></div></div>';
+    });
+    h += '</div></div>';
+  }
+
+  app.innerHTML = h;
+  function dec(n){ var x = new Date(date+"T12:00:00"); x.setDate(x.getDate()+n); go({n:"jour", date:iso(x)}); }
+  on("#prevj", function(){ dec(-1); });
+  on("#nextj", function(){ dec(1); });
+  on("#auj",   function(){ go({n:"jour", date:AUJ()}); });
+  each("[data-cours]", function(b){
+    b.onclick = function(){
+      var p = b.dataset.cours.split("|"), cl = classeByNom(p[0]);
+      if(!cl) return toast("Classe inconnue");
+      go({n:"seance", classeId:cl.id, date:date, slot:p[1]});
+    };
+  });
+  on("#addexc", function(){ sheetException(null, date); });
+  each("[data-exc]", function(b){ b.onclick = function(){ sheetException(b.dataset.exc, date); }; });
+  each("[data-fiche]", function(b){ b.onclick = function(){ go({n:"eleve", id:b.dataset.fiche, from:{n:"jour",date:date}}); }; });
+  each("[data-sanction]", function(b){ b.onclick = function(){ poserSanction(b.dataset.sanction); }; });
+  each("[data-ok]", function(b){
+    b.onclick = function(){
+      var r = (S.rappels || []).filter(function(x){ return x.id === b.dataset.ok; })[0];
+      if(!r) return;
+      r.fait = true; save(); render(); toast("Fait : " + r.titre);
+    };
+  });
+  each("[data-red]", function(b){ b.onclick = function(){ sheetRappel(b.dataset.red); }; });
+}
+
+function poserSanction(eid){
+  var e = eleveById(eid), c = oublisDepuisSanction(eid);
+  ouvrirSheet("Sanction — "+esc(e.prenom)+" "+esc(e.nom.toUpperCase()),
+    '<label class="field"><span>Sanction appliquée</span>'
+    + '<textarea id="sx" placeholder="Ex. : mot dans le carnet + heure de retenue jeudi">Sanction pour '+c+' oublis de tenue</textarea></label>'
+    + '<button class="btn primary wide" id="sok">Enregistrer et remettre le compteur à zéro</button>',
+    function(root){
+      root.querySelector("#sok").onclick = function(){
+        S.events.push({id:uid(), eleveId:eid, type:"sanction", date:AUJ(), texte:root.querySelector("#sx").value.trim()});
+        save(); fermerSheet(); render(); toast("Sanction enregistrée · compteur à 0");
+      };
+    });
+}
+
+/* ══════════ Vue : séance (appel + évaluation) ══════════ */
+function vueSeance(){
+  var cl = classeById(view.classeId);
+  if(!cl) return go({n:"classes"});
+  var date = view.date, ap = apsaEnCours(cl.id, date, view.slot), els = elevesDe(cl.id);
+
+  var h = header(cl.nom, frLong(date) + (view.slot ? " · "+view.slot : ""), true, cl.nom);
+  h += '<div class="sect"'+styleClasse(cl.nom)+'><div class="row" style="flex-wrap:wrap;gap:8px">'
+    + '<span class="badge '+(ap?"b-classe":"b-quiet")+'">'+(ap?esc(ap.nom):"Aucune APSA sur cette période")+'</span>'
+    + (cl.noter ? '' : '<span class="badge b-quiet">Sans note chiffrée</span>')
+    + '<span class="grow"></span><button class="btn sm" id="addapsa">APSA…</button></div>';
+
+  var sq = ap ? seanceDuJour(cl.id, ap, date) : null;
+  if(sq){
+    var f = sq.fiche;
+    h += '<div class="fiche" style="margin-top:12px">'
+      + '<div class="row"><span class="fiche-num">Séance <b>'+sq.num+'</b><span>/ '+sq.total+'</span></span>'
+      + '<span class="grow"><b class="fiche-titre">'+esc(f && f.titre ? f.titre : "Séance à préparer")+'</b>'
+      + '<span class="muted" style="display:block;font-size:12px">'+esc(ap.nom)+'</span></span></div>';
+    if(f && f.objectif) h += '<p class="fiche-obj"><span class="eyebrow">Objectif</span>'+esc(f.objectif)+'</p>';
+    if(f && f.materiel) h += '<p class="fiche-mat"><span class="eyebrow">Matériel</span>'+esc(f.materiel)+'</p>';
+    if(f && f.deroule) h += '<div class="fiche-der"><span class="eyebrow">Déroulé</span>'+deroulHTML(f.deroule)+'</div>';
+    if(f && f.projet) h += '<p class="fiche-pr"><span class="eyebrow">Projet d\'établissement</span>'+esc(f.projet)+'</p>';
+    if(!f) h += '<p class="muted" style="font-size:13px;margin:10px 0 0">Aucun contenu saisi pour cette séance.</p>';
+    h += '<div class="row" style="margin-top:12px">'
+      + '<button class="btn sm grow" id="editfiche">'+(f ? "Modifier la fiche" : "Écrire la fiche")+'</button>'
+      + '<button class="btn sm grow" id="cycle">Voir le cycle</button></div></div>';
+  } else if(ap){
+    h += '<div class="row" style="margin-top:12px"><button class="btn sm grow" id="cycle">Voir le cycle de '+esc(ap.nom)+'</button></div>';
+  }
+  h += '</div>';
+
+  if(!els.length){
+    h += '<div class="sect"><div class="empty">Aucun élève dans '+esc(cl.nom)+'.<br><br>'
+      + '<button class="btn sm primary" id="addel">Ajouter les élèves</button></div></div>';
+    app.innerHTML = h;
+    on("#back", function(){ go({n:"jour", date:date}); });
+    on("#addel", function(){ sheetImportEleves(cl.id); });
+    on("#addapsa", function(){ sheetAPSA(cl.id); });
+    on("#cycle", function(){ go({n:"cycle", classeId:cl.id, apsaId:ap.id, from:view}); });
+    on("#editfiche", function(){ sheetFiche(ap, sq.num); });
+    return;
+  }
+
+  var niv = ap ? niveauxDe(ap) : [];
+  if(ap){
+    if(niv.length){
+      h += '<div class="sect"><span class="eyebrow">Groupes · '+esc(ap.nom)+'</span><div class="chipbar">'
+        + '<button class="chip" data-f="" aria-pressed="'+(!view.filtre)+'">Tous ('+els.length+')</button>'
+        + niv.map(function(g, i){
+            return '<button class="chip"'+styleTeinte(i)+' data-f="'+g.id+'" aria-pressed="'
+              + (view.filtre === g.id) + '">'+esc(g.nom)+' ('+effectifGroupe(ap, cl.id, g.id)+')</button>';
+          }).join("")
+        + '<button class="chip" data-f="_sans" aria-pressed="'+(view.filtre === "_sans")+'">Sans groupe ('+sansGroupe(ap, cl.id)+')</button>'
+        + '</div><button class="btn sm wide" id="niveaux" style="margin-top:8px">Modifier les groupes</button></div>';
+    } else {
+      h += '<div class="sect"><button class="btn sm wide" id="niveaux">Créer des groupes de niveau en '+esc(ap.nom)+'</button></div>';
+    }
+  }
+  if(view.filtre && niv.length){
+    els = els.filter(function(e){
+      var i = groupeIndexDe(ap, e.id);
+      return view.filtre === "_sans" ? i < 0 : (i >= 0 && niv[i].id === view.filtre);
+    });
+  }
+
+  h += '<div class="sect"><button class="btn wide" id="atelier">Atelier de performances</button></div>';
+
+  h += '<div class="sect"'+styleClasse(cl.nom)+'><span class="eyebrow">Appel · '+els.length+' élève'+(els.length>1?"s":"")+'</span><div class="stack" style="gap:8px">';
+  if(!els.length) h += '<div class="empty">Aucun élève dans ce groupe.</div>';
+  els.forEach(function(e){
+    function has(t){ return S.events.some(function(x){ return x.eleveId===e.id && x.date===date && x.type===t; }); }
+    var oub = has("oubli"), abs = has("absent"), dis = has("dispense");
+    var rem = S.events.filter(function(x){ return x.eleveId===e.id && x.date===date && (x.type==="remarque"||x.type==="positif"); }).length;
+    var c = oublisDepuisSanction(e.id);
+    h += '<div class="srow'+(abs?" abs":"")+'"><div class="top">'
+      + '<span class="avatar '+(c>=S.seuil?"alert":(c===S.seuil-1?"warn":""))+'">'+esc(initiales(e))+'</span>'
+      + '<button class="grow linkish" data-fiche="'+e.id+'"><span class="nm">'+esc(e.nom.toUpperCase())+' '+esc(e.prenom)+'</span><br>'
+      + '<span class="meta">'+c+' oubli'+(c>1?"s":"")+' '+dots(c)+'</span></button>'
+      + (function(){
+          var gi = ap ? groupeIndexDe(ap, e.id) : -1;
+          return gi < 0 ? '' : '<span class="gtag"'+styleTeinte(gi)+'>'+esc(niv[gi].nom)+'</span>';
+        })()
+      + (cl.noter ? '<button class="btn sm" data-note="'+e.id+'">Note</button>' : '')
+      + '<button class="btn sm" data-comp="'+e.id+'">Comp.</button></div>'
+      + '<div class="acts">'
+      + '<button class="act oubli" aria-pressed="'+oub+'" data-t="oubli" data-e="'+e.id+'">Oubli</button>'
+      + '<button class="act absent" aria-pressed="'+abs+'" data-t="absent" data-e="'+e.id+'">Absent</button>'
+      + '<button class="act disp" aria-pressed="'+dis+'" data-t="dispense" data-e="'+e.id+'">Dispensé</button>'
+      + '<button class="act rem" data-has="'+(rem?1:0)+'" data-rem="'+e.id+'">Remarque'+(rem?" ("+rem+")":"")+'</button>'
+      + '</div>'
+      + (function(){
+          var dp = dispenseActive(e.id, date);
+          if(!dp) return '';
+          return '<div class="row" style="margin-top:8px">'
+            + (dp.photo ? '<button class="vign" data-ph="'+dp.id+'" style="border:0;padding:0;width:38px;height:38px" aria-label="Voir le justificatif">'
+                + '<img class="vign" style="width:38px;height:38px" src="'+dp.photo+'" alt="Justificatif"></button>' : '')
+            + '<button class="grow linkish" data-dd="'+dp.id+'">'
+            + '<span class="badge b-accent">Dispensé jusqu\'au '+frDate(dp.fin)+'</span>'
+            + '<span class="mot">'+esc(ORIGINES[dp.origine] || "Justificatif")
+            + (dp.motif ? " — " + esc(dp.motif) : "") + '</span></button></div>';
+        })()
+      + '</div>';
+  });
+  h += '</div></div>';
+
+  app.innerHTML = h;
+  on("#back", function(){ go({n:"jour", date:date}); });
+  on("#addapsa", function(){ sheetAPSA(cl.id); });
+  on("#cycle", function(){ go({n:"cycle", classeId:cl.id, apsaId:ap.id, from:view}); });
+  on("#editfiche", function(){ sheetFiche(ap, sq.num); });
+  on("#niveaux", function(){ go({n:"groupes", classeId:cl.id, apsaId:ap ? ap.id : null, from:view}); });
+  on("#atelier", function(){
+    go({n:"atelier", classeId:cl.id, date:date, epreuveId:"vortex", from:view});
+  });
+  each("[data-f]", function(b){
+    b.onclick = function(){
+      view.filtre = b.dataset.f || null;
+      render();
+    };
+  });
+  each("[data-t]", function(b){ b.onclick = function(){ bascule(b.dataset.e, b.dataset.t, date); }; });
+  each("[data-rem]", function(b){ b.onclick = function(){ sheetRemarque(b.dataset.rem, date); }; });
+  each("[data-note]", function(b){ b.onclick = function(){ sheetNote(b.dataset.note, ap); }; });
+  each("[data-comp]", function(b){ b.onclick = function(){ sheetComp(b.dataset.comp, ap); }; });
+  each("[data-fiche]", function(b){ b.onclick = function(){ go({n:"eleve", id:b.dataset.fiche, from:view}); }; });
+  brancherDispenses();
+}
+
+function bascule(eid, type, date){
+  var i = -1;
+  S.events.forEach(function(x,k){ if(x.eleveId===eid && x.date===date && x.type===type) i = k; });
+  if(i >= 0){ S.events.splice(i,1); save(); render(); return; }
+  S.events.push({id:uid(), eleveId:eid, type:type, date:date, texte:""});
+  save();
+  if(type === "oubli"){
+    var c = oublisDepuisSanction(eid), e = eleveById(eid);
+    render();
+    if(c >= S.seuil) return poserSanction(eid);
+    toast(e.prenom + " : " + c + " oubli" + (c>1?"s":"") + (c === S.seuil-1 ? " — le prochain déclenche la sanction" : ""));
+    return;
+  }
+  render();
+}
+
+/* ══════════ Vue : cycle de séances d'une APSA ══════════ */
+function deroulHTML(txt){
+  return String(txt).split("\n").map(function(l){ return l.trim(); }).filter(Boolean)
+    .map(function(l){
+      var m = l.match(/^(?:[-•*]\s*)?(.*)$/);
+      return '<span class="der-l">'+esc(m[1])+'</span>';
+    }).join("");
+}
+function vueCycle(){
+  var cl = classeById(view.classeId);
+  var ap = S.apsa.filter(function(a){ return a.id === view.apsaId; })[0];
+  if(!cl || !ap) return go({n:"classes"});
+  var dates = datesSeances(cl.id, ap), auj = AUJ();
+  var sty = styleClasse(cl.nom);
+
+  var h = header(ap.nom, cl.nom + " · " + dates.length + " séances"
+    + (ap.creneau ? " · " + libelleCreneau(ap.creneau) : ""), true, cl.nom);
+  h += '<div class="sect"'+sty+'><div class="row" style="flex-wrap:wrap;gap:8px">'
+    + '<span class="badge b-classe num">'+frDate(ap.debut)+' → '+frDate(ap.fin)+'</span>'
+    + '<span class="grow"></span><button class="btn sm" id="editapsa">Modifier la période</button></div>'
+    + '<button class="btn sm wide" id="grpapsa" style="margin-top:10px">'
+    + (niveauxDe(ap).length ? "Groupes de niveau (" + niveauxDe(ap).length + ")" : "Créer des groupes de niveau")
+    + '</button></div>';
+
+  if(!dates.length){
+    h += '<div class="sect"><div class="empty">Aucun créneau de '+esc(cl.nom)+' entre ces deux dates.<br>Vérifie la période de l\'APSA.</div></div>';
+    app.innerHTML = h;
+    on("#back", function(){ go(view.from || {n:"classe", id:cl.id}); });
+    on("#editapsa", function(){ sheetAPSA(cl.id, ap.id); });
+  on("#grpapsa", function(){ go({n:"groupes", classeId:cl.id, apsaId:ap.id, from:view}); });
+    return;
+  }
+
+  h += '<div class="sect"'+sty+'><span class="eyebrow">Progression du cycle</span><div class="plist">';
+  dates.forEach(function(d, i){
+    var num = i + 1, f = ficheSeance(ap, num);
+    var etat = d.date < auj ? "faite" : (d.date === auj ? "auj" : "avenir");
+    h += '<button class="seance-l '+etat+'" data-s="'+num+'" data-d="'+d.date+'">'
+      + '<span class="sn">'+num+'</span>'
+      + '<span class="grow truncate"><b>'+esc(f && f.titre ? f.titre : "Séance à préparer")+'</b><br>'
+      + '<span class="meta num">'+frDate(d.date)+' · '+d.slot+'</span></span>'
+      + (etat === "auj" ? '<span class="badge b-classe">aujourd\'hui</span>'
+        : (f ? '' : '<span class="badge b-quiet">vide</span>'))
+      + '<span class="chev">›</span></button>';
+  });
+  h += '</div></div>';
+
+  app.innerHTML = h;
+  on("#back", function(){ go(view.from || {n:"classe", id:cl.id}); });
+  on("#editapsa", function(){ sheetAPSA(cl.id, ap.id); });
+  on("#grpapsa", function(){ go({n:"groupes", classeId:cl.id, apsaId:ap.id, from:view}); });
+  each("[data-s]", function(b){
+    b.onclick = function(){ sheetFiche(ap, +b.dataset.s, b.dataset.d, cl.id); };
+  });
+}
+
+/* ══════════ Documents de référence et recherche ══════════ */
+var CATEGORIES = ["Projet d'établissement","Programmes et textes","Calendrier",
+                  "Sécurité et protocoles","Vie scolaire","Autre"];
+var VIDES = ["le","la","les","un","une","des","du","de","au","aux","et","ou","en","dans","sur",
+  "pour","par","avec","que","qui","quoi","quel","quelle","quelles","quels","est","sont","ce",
+  "cette","ces","son","sa","ses","mon","ma","mes","il","elle","on","nous","vous","ils","elles",
+  "a","à","dit","dis","comment","pourquoi","est-ce","y","d","l","n","se","plus","moins","je","tu"];
+
+function sansAccents(s){
+  return String(s).normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
+}
+/* On cherche sur la racine du mot : « absente » doit retrouver « absences ». */
+function racine(m){
+  if(m.length <= 4) return m;
+  return m.slice(0, Math.max(4, m.length - 2));
+}
+function motsUtiles(q){
+  return sansAccents(q).split(/[^a-z0-9]+/)
+    .filter(function(m){ return m.length > 2 && VIDES.indexOf(m) < 0; })
+    .map(racine);
+}
+function paragraphes(txt){
+  return String(txt).split(/\n\s*\n|\n/).map(function(p){ return p.trim(); })
+    .filter(function(p){ return p.length > 1; });
+}
+/* Recherche : on classe les paragraphes par nombre de mots de la question retrouvés. */
+function chercherDocs(q){
+  var mots = motsUtiles(q);
+  if(!mots.length) return [];
+  var res = [];
+  (S.docs || []).forEach(function(d){
+    paragraphes(d.texte).forEach(function(p, i){
+      var np = sansAccents(p), score = 0;
+      mots.forEach(function(m){ if(np.indexOf(m) >= 0) score++; });
+      if(score) res.push({doc:d, para:p, index:i, score:score,
+        exact:np.indexOf(sansAccents(q).trim()) >= 0 ? 1 : 0});
+    });
+  });
+  return res.sort(function(a, b){
+    return (b.score - a.score) || (b.exact - a.exact) || (a.para.length - b.para.length);
+  }).slice(0, 25);
+}
+function surligner(texte, q){
+  var mots = motsUtiles(q);
+  if(!mots.length) return esc(texte);
+  var np = sansAccents(texte), marques = [];
+  mots.forEach(function(m){
+    var i = 0;
+    while((i = np.indexOf(m, i)) >= 0){
+      /* On surligne le mot entier, pas seulement la racine trouvée. */
+      var fin = i + m.length;
+      while(fin < np.length && /[a-z0-9]/.test(np[fin])) fin++;
+      marques.push([i, fin]);
+      i = fin;
+    }
+  });
+  if(!marques.length) return esc(texte);
+  marques.sort(function(a, b){ return a[0] - b[0]; });
+  var fus = [marques[0]];
+  marques.slice(1).forEach(function(m){
+    var d = fus[fus.length - 1];
+    if(m[0] <= d[1]) d[1] = Math.max(d[1], m[1]); else fus.push(m);
+  });
+  var out = "", pos = 0;
+  fus.forEach(function(m){
+    out += esc(texte.slice(pos, m[0])) + '<mark>' + esc(texte.slice(m[0], m[1])) + '</mark>';
+    pos = m[1];
+  });
+  return out + esc(texte.slice(pos));
+}
+
+var question = "";
+function vueDocs(){
+  var h = header("Documents", (S.docs || []).length + " enregistré" + ((S.docs||[]).length>1?"s":""), false);
+  h += '<div class="sect"><input type="text" id="q" placeholder="Poser une question, chercher un mot…" value="'+esc(question)+'">'
+    + '<p class="muted" style="font-size:12px;margin:8px 0 0">L\'appli retrouve les passages qui contiennent tes mots. Pour une réponse rédigée, pose la question à Claude.</p></div>';
+
+  if(question.trim()){
+    var res = chercherDocs(question);
+    h += '<div class="sect"><span class="eyebrow">'+(res.length ? res.length + " passage" + (res.length>1?"s":"") : "Aucun passage")+'</span><div class="stack" style="gap:8px">';
+    if(!res.length) h += '<div class="empty">Rien trouvé pour « '+esc(question)+' ».<br>Essaie un autre mot, ou vérifie que le document est bien enregistré.</div>';
+    res.forEach(function(r){
+      h += '<button class="passage" data-doc="'+r.doc.id+'">'
+        + '<span class="badge b-accent">'+esc(r.doc.titre)+'</span>'
+        + '<span class="ptxt">'+surligner(r.para, question)+'</span></button>';
+    });
+    h += '</div></div>';
+  }
+
+  h += '<div class="sect"><span class="eyebrow">Mes documents</span><div class="plist">';
+  if(!(S.docs || []).length){
+    h += '<div class="empty">Aucun document.<br>Ajoute ton projet d\'établissement, le calendrier prévisionnel, les protocoles de sécurité…</div>';
+  }
+  (S.docs || []).slice().sort(function(a,b){ return a.titre.localeCompare(b.titre,"fr"); })
+    .forEach(function(d){
+      var n = paragraphes(d.texte).length;
+      h += '<button class="prow" data-doc="'+d.id+'"><span class="grow truncate">'
+        + '<span class="nm">'+esc(d.titre)+'</span><br>'
+        + '<span class="meta">'+esc(d.cat || "Autre")+' · '+n+' paragraphe'+(n>1?"s":"")+'</span></span>'
+        + '<span class="chev">›</span></button>';
+    });
+  h += '</div><button class="btn wide" id="adddoc" style="margin-top:10px">+ Ajouter un document</button></div>';
+  h += '<div class="sect"><button class="btn wide ghost" id="goreg">Réglages de l\'application</button></div>';
+
+  app.innerHTML = h;
+  var qi = app.querySelector("#q");
+  qi.oninput = function(){
+    var p = qi.selectionStart; question = qi.value; render();
+    var n = document.getElementById("q");
+    if(n){ n.focus(); try{ n.setSelectionRange(p, p); }catch(err){} }
+  };
+  on("#adddoc", function(){ sheetDoc(null); });
+  on("#goreg", function(){ go({n:"reglages"}); });
+  each("[data-doc]", function(b){ b.onclick = function(){ go({n:"doc", id:b.dataset.doc}); }; });
+}
+
+function vueDoc(){
+  var d = (S.docs || []).filter(function(x){ return x.id === view.id; })[0];
+  if(!d) return go({n:"docs"});
+  var h = header(d.titre, d.cat || "Autre", true);
+  h += '<div class="sect"><div class="row"><button class="btn sm grow" id="edit">Modifier</button>'
+    + '<button class="btn sm grow" id="chercher">Chercher dedans</button></div></div>';
+  h += '<div class="sect"><div class="doctxt">'
+    + paragraphes(d.texte).map(function(p){ return '<p>'+surligner(p, question)+'</p>'; }).join("")
+    + '</div></div>';
+  app.innerHTML = h;
+  on("#back", function(){ go({n:"docs"}); });
+  on("#edit", function(){ sheetDoc(d.id); });
+  on("#chercher", function(){ go({n:"docs"}); });
+}
+
+function sheetDoc(id){
+  var d = id ? (S.docs || []).filter(function(x){ return x.id === id; })[0] : null;
+  var opts = CATEGORIES.map(function(c){
+    return '<option value="'+esc(c)+'"'+(d && d.cat === c ? " selected" : "")+'>'+esc(c)+'</option>';
+  }).join("");
+  ouvrirSheet(d ? "Modifier le document" : "Nouveau document",
+    '<label class="field"><span>Titre</span><input type="text" id="ti" value="'+(d?esc(d.titre):"")+'" placeholder="Ex. : Projet d\'établissement 2026-2030"></label>'
+    + '<label class="field"><span>Catégorie</span><select id="ca">'+opts+'</select></label>'
+    + '<label class="field"><span>Contenu</span><textarea id="tx" style="min-height:220px" placeholder="Colle ici le texte du document. Une idée par paragraphe : la recherche sera plus précise.">'+(d?esc(d.texte):"")+'</textarea></label>'
+    + '<button class="btn primary wide" id="ok">'+(d ? "Enregistrer" : "Ajouter le document")+'</button>'
+    + (d ? '<button class="btn wide danger" id="del">Supprimer ce document</button>' : ''),
+    function(root){
+      root.querySelector("#ok").onclick = function(){
+        var ti = root.querySelector("#ti").value.trim();
+        var tx = root.querySelector("#tx").value.trim();
+        if(!ti) return toast("Donne un titre au document");
+        if(!tx) return toast("Colle le contenu du document");
+        if(!S.docs) S.docs = [];
+        if(d){ d.titre = ti; d.cat = root.querySelector("#ca").value; d.texte = tx; d.maj = AUJ(); }
+        else S.docs.push({id:uid(), titre:ti, cat:root.querySelector("#ca").value, texte:tx, maj:AUJ()});
+        save(); fermerSheet(); render(); toast("Document enregistré");
+      };
+      var b = root.querySelector("#del");
+      if(b) b.onclick = function(){
+        S.docs = (S.docs || []).filter(function(x){ return x.id !== id; });
+        save(); fermerSheet(); go({n:"docs"}); toast("Document supprimé");
+      };
+    });
+}
+
+/* ══════════ Vue : rappels ══════════ */
+function rappelsTries(){
+  return (S.rappels || []).slice().sort(function(a,b){
+    return a.date.localeCompare(b.date) || a.id.localeCompare(b.id);
+  });
+}
+function rappelsActifs(){ return rappelsTries().filter(function(r){ return !r.fait; }); }
+function rappelsDuJour(date){
+  return rappelsActifs().filter(function(r){ return r.date === date; });
+}
+function rappelsEnRetard(date){
+  return rappelsActifs().filter(function(r){ return r.date < date; });
+}
+function joursAvant(date){
+  return Math.round((new Date(date+"T12:00:00") - new Date(AUJ()+"T12:00:00")) / 86400000);
+}
+function echeance(r){
+  var j = joursAvant(r.date);
+  if(j < 0) return {txt:"en retard de " + (-j) + " j", cls:"b-alert"};
+  if(j === 0) return {txt:"aujourd'hui", cls:"b-alert"};
+  if(j === 1) return {txt:"demain", cls:"b-warn"};
+  if(j <= 7) return {txt:"dans " + j + " jours", cls:"b-warn"};
+  return {txt:"dans " + j + " jours", cls:"b-quiet"};
+}
+
+function ligneRappel(r){
+  var e = echeance(r);
+  var cl = r.classeId ? classeById(r.classeId) : null;
+  return '<div class="rap'+(r.fait ? " fait" : "")+'">'
+    + '<button class="coche'+(r.fait ? " on" : "")+'" data-ok="'+r.id+'" aria-label="Marquer comme fait">'
+    + (r.fait ? "✓" : "") + '</button>'
+    + '<button class="grow linkish" data-red="'+r.id+'">'
+    + '<b>'+esc(r.titre)+'</b><br>'
+    + '<span class="meta num">'+frDate(r.date)+'</span> '
+    + '<span class="badge '+e.cls+'">'+e.txt+'</span>'
+    + (cl ? ' <span class="badge b-classe"'+styleClasse(cl.nom)+'>'+esc(cl.nom)+'</span>' : '')
+    + (r.note ? '<span class="rnote">'+esc(r.note)+'</span>' : '')
+    + '</button></div>';
+}
+
+function vueRappels(){
+  var auj = AUJ();
+  var actifs = rappelsActifs();
+  var retard = actifs.filter(function(r){ return r.date < auj; });
+  var jour   = actifs.filter(function(r){ return r.date === auj; });
+  var semaine = actifs.filter(function(r){ return r.date > auj && joursAvant(r.date) <= 7; });
+  var suite  = actifs.filter(function(r){ return joursAvant(r.date) > 7; });
+  var faits  = rappelsTries().filter(function(r){ return r.fait; }).reverse();
+
+  var h = header("Rappels", actifs.length + " à venir", false);
+  h += '<div class="sect"><div class="stack" style="gap:8px">'
+    + '<button class="btn primary wide" id="addr">+ Nouveau rappel</button>'
+    + '<div class="row"><button class="btn sm grow" id="coller">Coller un mail</button>'
+    + '<button class="btn sm grow" id="ics">Envoyer vers mon agenda</button></div></div></div>';
+
+  function bloc(titre, l){
+    if(!l.length) return "";
+    return '<div class="sect"><span class="eyebrow">'+titre+'</span><div class="stack" style="gap:8px">'
+      + l.map(ligneRappel).join("") + '</div></div>';
+  }
+  h += bloc("En retard", retard);
+  h += bloc("Aujourd'hui", jour);
+  h += bloc("Cette semaine", semaine);
+  h += bloc("Plus tard", suite);
+
+  if(!actifs.length){
+    h += '<div class="sect"><div class="empty">Aucun rappel en attente.<br>'
+      + 'Note ici tout ce qui a une date : réunion parents, remise des notes, sortie, conseil de classe, brevet blanc…</div></div>';
+  }
+  if(faits.length){
+    h += '<div class="sect"><span class="eyebrow">Faits ('+faits.length+')</span><div class="stack" style="gap:8px">'
+      + faits.slice(0, 20).map(ligneRappel).join("") + '</div>'
+      + '<button class="btn sm wide" id="purge" style="margin-top:10px">Effacer les rappels faits</button></div>';
+  }
+
+  app.innerHTML = h;
+  on("#addr", function(){ sheetRappel(null); });
+  on("#coller", sheetColler);
+  on("#ics", exporterAgenda);
+  on("#purge", function(){
+    S.rappels = (S.rappels || []).filter(function(r){ return !r.fait; });
+    save(); render(); toast("Rappels faits effacés");
+  });
+  each("[data-ok]", function(b){
+    b.onclick = function(){
+      var r = (S.rappels || []).filter(function(x){ return x.id === b.dataset.ok; })[0];
+      if(!r) return;
+      r.fait = !r.fait; save(); render();
+      toast(r.fait ? "Fait : " + r.titre : "Remis en attente");
+    };
+  });
+  each("[data-red]", function(b){ b.onclick = function(){ sheetRappel(b.dataset.red); }; });
+}
+
+/* ── Extraction des dates d'un mail collé ── */
+var MOIS = {janvier:1,"février":2,fevrier:2,mars:3,avril:4,mai:5,juin:6,juillet:7,"août":8,aout:8,
+  septembre:9,octobre:10,novembre:11,"décembre":12,decembre:12};
+function anneeProbable(m, j){
+  var auj = new Date(), a = auj.getFullYear();
+  var d = new Date(a, m - 1, j);
+  /* Une date déjà passée de plus d'un mois désigne l'année suivante. */
+  if((auj - d) / 86400000 > 31) a++;
+  return a;
+}
+function detecterDates(txt){
+  var lignes = String(txt).split(/[\n\r]+|(?<=[.;!?])\s+/)
+    .map(function(l){ return l.trim(); }).filter(function(l){ return l.length > 2; });
+  var vus = {}, out = [];
+  lignes.forEach(function(ligne){
+    var d = null;
+    var m = ligne.match(/\b(\d{1,2})\s*[\/.-]\s*(\d{1,2})(?:\s*[\/.-]\s*(\d{2,4}))?\b/);
+    if(m){
+      var jj = +m[1], mm = +m[2], aa = m[3] ? +m[3] : null;
+      if(aa !== null && aa < 100) aa += 2000;
+      if(jj >= 1 && jj <= 31 && mm >= 1 && mm <= 12){
+        d = (aa || anneeProbable(mm, jj)) + "-" + ("0"+mm).slice(-2) + "-" + ("0"+jj).slice(-2);
+      }
+    }
+    if(!d){
+      var re = new RegExp("\\b(\\d{1,2})(?:er)?\\s+(" + Object.keys(MOIS).join("|") + ")(?:\\s+(\\d{4}))?\\b", "i");
+      var n = ligne.match(re);
+      if(n){
+        var j2 = +n[1], m2 = MOIS[n[2].toLowerCase()], a2 = n[3] ? +n[3] : anneeProbable(m2, j2);
+        d = a2 + "-" + ("0"+m2).slice(-2) + "-" + ("0"+j2).slice(-2);
+      }
+    }
+    if(!d) return;
+    var h = ligne.match(/\b(\d{1,2})\s*h\s*(\d{2})?\b/i);
+    /* Nettoyage du bruit d'ENT : chevrons de citation, puces, en-têtes de message. */
+    var titre = ligne
+      .replace(/^[>»\-–—*•·\s]+/, "")
+      .replace(/^(objet|de|à|a|envoyé|envoye|date|cc|copie)\s*:\s*/i, "")
+      .replace(/^(bonjour|bonsoir|madame|monsieur|chers?\s+coll[èe]gues)[,\s]+/i, "")
+      .replace(/\s+/g, " ").trim();
+    if(!titre) titre = ligne.replace(/\s+/g, " ").trim();
+    if(titre.length > 90) titre = titre.slice(0, 88) + "…";
+    var cle = d + "|" + titre.toLowerCase();
+    if(vus[cle]) return;
+    vus[cle] = true;
+    out.push({date:d, titre:titre, heure:h ? (h[1] + "h" + (h[2] || "")) : ""});
+  });
+  return out.sort(function(a,b){ return a.date.localeCompare(b.date); });
+}
+
+function sheetColler(){
+  ouvrirSheet("Coller un mail ou une circulaire",
+    '<p class="muted" style="margin:0;font-size:13px">Copie le texte du mail, colle-le ici : l\'appli repère les dates et te propose des rappels. Rien n\'est créé sans ta validation.</p>'
+    + '<label class="field"><span>Texte</span><textarea id="tx" style="min-height:170px" placeholder="Colle ici le mail de la direction, la circulaire, le calendrier des conseils de classe…"></textarea></label>'
+    + '<button class="btn primary wide" id="scan">Chercher les dates</button>',
+    function(root){
+      root.querySelector("#scan").onclick = function(){
+        var l = detecterDates(root.querySelector("#tx").value);
+        if(!l.length) return toast("Aucune date reconnue dans ce texte");
+        fermerSheet();
+        sheetConfirmerDates(l);
+      };
+    });
+}
+
+function sheetConfirmerDates(l){
+  var opts = '<option value="">— aucune —</option>' + S.classes.map(function(c){
+    return '<option value="'+c.id+'">'+esc(c.nom)+'</option>';
+  }).join("");
+  ouvrirSheet(l.length + " date" + (l.length>1?"s":"") + " trouvée" + (l.length>1?"s":""),
+    '<p class="muted" style="margin:0;font-size:13px">Décoche ce qui n\'est pas un rappel, puis enregistre. Tu pourras corriger chaque titre ensuite.</p>'
+    + '<div class="stack" style="gap:8px">' + l.map(function(r, i){
+        return '<div class="trouve">'
+          + '<div class="row"><input type="checkbox" class="check" data-r="'+i+'" checked>'
+          + '<span class="meta num grow">'+frDate(r.date)+(r.heure ? " · "+esc(r.heure) : "")+'</span></div>'
+          + '<input type="text" data-t="'+i+'" value="'+esc(r.titre)+'" '
+          + 'style="margin-top:7px;min-height:42px" aria-label="Intitulé du rappel"></div>';
+      }).join("") + '</div>'
+    + '<label class="field"><span>Classe concernée (pour toutes)</span><select id="cl">'+opts+'</select></label>'
+    + '<button class="btn primary wide" id="ok">Créer les rappels</button>',
+    function(root){
+      root.querySelector("#ok").onclick = function(){
+        var cid = root.querySelector("#cl").value || null, n = 0;
+        if(!S.rappels) S.rappels = [];
+        Array.prototype.forEach.call(root.querySelectorAll("[data-r]"), function(b){
+          if(!b.checked) return;
+          var i = +b.dataset.r, r = l[i];
+          var champ = root.querySelector('[data-t="' + i + '"]');
+          var titre = champ ? champ.value.trim() : r.titre;
+          if(!titre) return;
+          S.rappels.push({id:uid(), titre:titre, date:r.date, classeId:cid,
+                          note:r.heure ? "À " + r.heure : "", fait:false});
+          n++;
+        });
+        if(!n) return toast("Coche au moins une date");
+        save(); fermerSheet(); go({n:"rappels"});
+        toast(n + " rappel" + (n>1 ? "s créés" : " créé"));
+      };
+    });
+}
+
+/* ── Export vers l'agenda du téléphone (.ics) ── */
+function exporterAgenda(){
+  var l = rappelsActifs();
+  if(!l.length) return toast("Aucun rappel à exporter");
+  function pack(s){ return String(s).replace(/([,;\\])/g, "\\$1").replace(/\n/g, "\\n"); }
+  var lignes = ["BEGIN:VCALENDAR","VERSION:2.0","PRODID:-//Carnet EPS//FR","CALSCALE:GREGORIAN"];
+  l.forEach(function(r){
+    var d = r.date.replace(/-/g, "");
+    var fin = new Date(r.date+"T12:00:00"); fin.setDate(fin.getDate()+1);
+    var cl = r.classeId ? classeById(r.classeId) : null;
+    lignes.push("BEGIN:VEVENT",
+      "UID:" + r.id + "@carnet-eps",
+      "DTSTAMP:" + AUJ().replace(/-/g,"") + "T080000Z",
+      "DTSTART;VALUE=DATE:" + d,
+      "DTEND;VALUE=DATE:" + iso(fin).replace(/-/g,""),
+      "SUMMARY:" + pack(r.titre + (cl ? " (" + cl.nom + ")" : "")),
+      "DESCRIPTION:" + pack(r.note || ""),
+      "BEGIN:VALARM","TRIGGER:-PT15H","ACTION:DISPLAY","DESCRIPTION:" + pack(r.titre),"END:VALARM",
+      "END:VEVENT");
+  });
+  lignes.push("END:VCALENDAR");
+  var data = lignes.join("\r\n");
+  var use = window.claude && window.claude.use ? window.claude.use("downloads") : null;
+  Promise.resolve(use).then(function(dl){
+    if(dl && dl.save) return dl.save({filename:"rappels-eps.ics", data:data})
+      .then(function(){ toast("Ouvre le fichier pour l'ajouter à ton agenda"); });
+    return navigator.clipboard.writeText(data).then(function(){ toast("Agenda copié dans le presse-papier"); });
+  }).catch(function(){ toast("Export refusé ou indisponible sur cet appareil"); });
+}
+
+function sheetRappel(id){
+  var r = id ? (S.rappels || []).filter(function(x){ return x.id === id; })[0] : null;
+  var opts = '<option value="">— aucune —</option>' + S.classes.map(function(c){
+    return '<option value="'+c.id+'"'+(r && r.classeId === c.id ? " selected" : "")+'>'+esc(c.nom)+'</option>';
+  }).join("");
+  ouvrirSheet(r ? "Modifier le rappel" : "Nouveau rappel",
+    '<label class="field"><span>Quoi ?</span><input type="text" id="ti" value="'+(r?esc(r.titre):"")+'" placeholder="Ex. : rendre les notes du trimestre"></label>'
+    + '<label class="field"><span>Quand ?</span><input type="date" id="dt" value="'+(r?r.date:AUJ())+'"></label>'
+    + '<label class="field"><span>Classe concernée</span><select id="cl">'+opts+'</select></label>'
+    + '<label class="field"><span>Précisions</span><textarea id="no" style="min-height:80px" placeholder="Facultatif">'+(r?esc(r.note||""):"")+'</textarea></label>'
+    + '<button class="btn primary wide" id="ok">'+(r ? "Enregistrer" : "Créer le rappel")+'</button>'
+    + (r ? '<button class="btn wide danger" id="del">Supprimer</button>' : ''),
+    function(root){
+      root.querySelector("#ok").onclick = function(){
+        var ti = root.querySelector("#ti").value.trim();
+        var dt = root.querySelector("#dt").value;
+        if(!ti) return toast("Écris ce qu'il ne faut pas oublier");
+        if(!dt) return toast("Choisis une date");
+        var maj = {titre:ti, date:dt, classeId:root.querySelector("#cl").value || null,
+                   note:root.querySelector("#no").value.trim()};
+        if(r){ r.titre = maj.titre; r.date = maj.date; r.classeId = maj.classeId; r.note = maj.note; }
+        else {
+          if(!S.rappels) S.rappels = [];
+          S.rappels.push({id:uid(), titre:maj.titre, date:maj.date, classeId:maj.classeId,
+                          note:maj.note, fait:false});
+        }
+        save(); fermerSheet(); render(); toast("Rappel enregistré");
+      };
+      var d = root.querySelector("#del");
+      if(d) d.onclick = function(){
+        S.rappels = (S.rappels || []).filter(function(x){ return x.id !== id; });
+        save(); fermerSheet(); render(); toast("Rappel supprimé");
+      };
+    });
+}
+
+/* ══════════ Vue : groupes de niveau d'une classe ══════════ */
+function vueGroupes(){
+  var c = classeById(view.classeId);
+  if(!c) return go({n:"classes"});
+  var ap = view.apsaId
+    ? S.apsa.filter(function(a){ return a.id === view.apsaId; })[0]
+    : apsaCourante(c.id);
+
+  if(!ap){
+    app.innerHTML = header("Groupes de niveau", c.nom, true, c.nom)
+      + '<div class="sect"><div class="empty">Les groupes de niveau sont rattachés à une APSA.<br>'
+      + 'Programme d\'abord une activité pour '+esc(c.nom)+'.<br><br>'
+      + '<button class="btn sm primary" id="addapsa">+ Ajouter une APSA</button></div></div>';
+    on("#back", function(){ go(view.from || {n:"classe", id:c.id}); });
+    on("#addapsa", function(){ sheetAPSA(c.id); });
+    return;
+  }
+
+  var els = elevesDe(c.id), l = niveauxDe(ap);
+  var autres = S.apsa.filter(function(a){ return a.classeId === c.id && a.id !== ap.id; });
+  var h = header("Groupes — " + ap.nom, c.nom, true, c.nom);
+  h += '<div class="sect"><div class="row" style="flex-wrap:wrap;gap:8px">'
+    + '<span class="badge b-accent num">'+frDate(ap.debut)+' → '+frDate(ap.fin)+'</span>'
+    + (autres.length ? '<span class="grow"></span><button class="btn sm" id="autreapsa">Autre APSA…</button>' : '')
+    + '</div></div>';
+
+  if(!l.length){
+    h += '<div class="sect"><div class="empty">Aucun groupe en '+esc(ap.nom)+'.<br>'
+      + 'Crée-les, puis touche un élève pour le placer.</div>'
+      + '<div class="row" style="margin-top:12px">'
+      + '<button class="btn grow" data-creer="2">2 groupes</button>'
+      + '<button class="btn grow" data-creer="3">3 groupes</button>'
+      + '<button class="btn grow" data-creer="4">4 groupes</button></div>';
+    var source = S.apsa.filter(function(a){
+      return a.classeId === c.id && a.id !== ap.id && niveauxDe(a).length;
+    });
+    if(source.length){
+      h += '<p class="muted" style="font-size:13px;margin:14px 0 8px">Ou repartir d\'une répartition existante :</p><div class="stack" style="gap:8px">'
+        + source.map(function(a){
+            return '<button class="btn wide" data-copie="'+a.id+'">Reprendre les groupes de '+esc(a.nom)+'</button>';
+          }).join("") + '</div>';
+    }
+    h += '</div>';
+    app.innerHTML = h;
+    on("#back", function(){ go(view.from || {n:"classe", id:c.id}); });
+    on("#autreapsa", function(){ choisirApsaGroupes(c, ap); });
+    each("[data-creer]", function(b){
+      b.onclick = function(){
+        var n = +b.dataset.creer;
+        ap.niveaux = []; ap.affect = {};
+        for (var i = 1; i <= n; i++) ap.niveaux.push({id:uid(), nom:"Groupe " + i});
+        save(); render(); toast(n + " groupes créés — touche un élève pour le placer");
+      };
+    });
+    each("[data-copie]", function(b){
+      b.onclick = function(){
+        var src = S.apsa.filter(function(a){ return a.id === b.dataset.copie; })[0];
+        var corresp = {};
+        ap.niveaux = niveauxDe(src).map(function(g){
+          var ng = {id:uid(), nom:g.nom}; corresp[g.id] = ng.id; return ng;
+        });
+        ap.affect = {};
+        Object.keys(src.affect || {}).forEach(function(eid){
+          if(corresp[src.affect[eid]]) ap.affect[eid] = corresp[src.affect[eid]];
+        });
+        save(); render(); toast("Répartition de " + src.nom + " reprise");
+      };
+    });
+    return;
+  }
+
+  h += '<div class="sect"><span class="eyebrow">Groupes</span><div class="stack" style="gap:8px">';
+  l.forEach(function(g, i){
+    var n = effectifGroupe(ap, c.id, g.id);
+    h += '<div class="grp"'+styleTeinte(i)+'><span class="gpast">'+(i+1)+'</span>'
+      + '<span class="grow truncate"><b>'+esc(g.nom)+'</b><br>'
+      + '<span class="meta num">'+n+' élève'+(n>1?"s":"")+'</span></span>'
+      + '<button class="btn sm ghost" data-ren="'+g.id+'">Renommer</button>'
+      + '<button class="btn sm ghost" data-supg="'+g.id+'" aria-label="Supprimer le groupe">✕</button></div>';
+  });
+  h += '</div><div class="row" style="margin-top:10px">'
+    + '<button class="btn sm grow" id="addg">+ Ajouter un groupe</button>'
+    + '<button class="btn sm grow" id="vider">Tout remettre à zéro</button></div></div>';
+
+  h += '<div class="sect"><span class="eyebrow">'+els.length+' élèves · touche pour changer de groupe</span>'
+    + '<div class="plist">';
+  els.forEach(function(e){
+    var i = groupeIndexDe(ap, e.id), g = i < 0 ? null : l[i];
+    h += '<button class="erow'+(g?"":" hors")+'"'+(g?styleTeinte(i):"")+' data-cyc="'+e.id+'">'
+      + '<span class="gpast">'+(g ? (i+1) : "—")+'</span>'
+      + '<span class="grow truncate"><b>'+esc(e.nom.toUpperCase())+' '+esc(e.prenom)+'</b><br>'
+      + '<span class="meta">'+(g ? esc(g.nom) : "sans groupe")+'</span></span></button>';
+  });
+  h += '</div>';
+  var horsG = sansGroupe(ap, c.id);
+  if(horsG) h += '<p class="muted" style="font-size:13px;margin:12px 0 0">'
+    + horsG+' élève'+(horsG>1?"s":"")+' sans groupe. Un appui de plus sur le dernier groupe remet l\'élève sans groupe.</p>';
+  h += '</div>';
+
+  app.innerHTML = h;
+  on("#back", function(){ go(view.from || {n:"classe", id:c.id}); });
+  on("#autreapsa", function(){ choisirApsaGroupes(c, ap); });
+  on("#addg", function(){
+    ap.niveaux.push({id:uid(), nom:"Groupe " + (ap.niveaux.length + 1)});
+    save(); render(); toast("Groupe ajouté");
+  });
+  on("#vider", function(){ ap.affect = {}; save(); render(); toast("Tous les élèves sont sans groupe"); });
+  each("[data-cyc]", function(b){
+    b.onclick = function(){
+      cyclerGroupe(ap, b.dataset.cyc);
+      var e = eleveById(b.dataset.cyc), g = groupeDe(ap, e.id);
+      render();
+      toast(e.prenom + " → " + (g ? g.nom : "sans groupe"));
+    };
+  });
+  each("[data-ren]", function(b){
+    b.onclick = function(){
+      var g = niveauxDe(ap).filter(function(x){ return x.id === b.dataset.ren; })[0];
+      ouvrirSheet("Renommer le groupe",
+        '<label class="field"><span>Nom du groupe</span><input type="text" id="nm" value="'+esc(g.nom)+'" placeholder="Ex. : Confirmés"></label>'
+        + '<button class="btn primary wide" id="ok">Enregistrer</button>',
+        function(root){
+          root.querySelector("#ok").onclick = function(){
+            var v = root.querySelector("#nm").value.trim();
+            if(!v) return toast("Donne un nom au groupe");
+            g.nom = v; save(); fermerSheet(); render(); toast("Groupe renommé");
+          };
+        });
+    };
+  });
+  each("[data-supg]", function(b){
+    b.onclick = function(){
+      var gid = b.dataset.supg;
+      ap.niveaux = ap.niveaux.filter(function(x){ return x.id !== gid; });
+      Object.keys(ap.affect || {}).forEach(function(k){ if(ap.affect[k] === gid) delete ap.affect[k]; });
+      save(); render(); toast("Groupe supprimé");
+    };
+  });
+}
+
+function choisirApsaGroupes(c, actuelle){
+  var l = S.apsa.filter(function(a){ return a.classeId === c.id; })
+    .sort(function(a,b){ return (b.debut||"").localeCompare(a.debut||""); });
+  ouvrirSheet("Groupes de quelle APSA ?",
+    '<div class="plist">' + l.map(function(a){
+      var n = niveauxDe(a).length;
+      return '<button class="prow" data-ap="'+a.id+'"><span class="grow truncate">'
+        + '<span class="nm">'+esc(a.nom)+'</span><br><span class="meta num">'+frDate(a.debut)+' → '+frDate(a.fin)
+        + ' · ' + (n ? n+" groupes" : "aucun groupe") + '</span></span>'
+        + (a.id === actuelle.id ? '<span class="badge b-accent">affichée</span>' : '')
+        + '</button>';
+    }).join("") + '</div>',
+    function(root){
+      Array.prototype.forEach.call(root.querySelectorAll("[data-ap]"), function(b){
+        b.onclick = function(){
+          fermerSheet();
+          go({n:"groupes", classeId:c.id, apsaId:b.dataset.ap, from:view.from});
+        };
+      });
+    });
+}
+
+/* ══════════ Vue : liste des classes ══════════ */
+function vueClasses(){
+  var h = header("Mes classes", S.classes.length + " classes", false);
+  h += '<div class="sect"><div class="plist">';
+  S.classes.forEach(function(c){
+    var els = elevesDe(c.id), ap = apsaEnCours(c.id, AUJ());
+    var al = els.filter(function(e){ return oublisDepuisSanction(e.id) >= S.seuil; }).length;
+    h += '<button class="prow tinted" data-c="'+c.id+'"'+styleClasse(c.nom)+'>'
+      + '<span class="avatar">'+esc(c.nom.slice(0,2))+'</span>'
+      + '<span class="grow truncate"><span class="nm">'+esc(c.nom)+'</span><br>'
+      + '<span class="meta">'+els.length+' élève'+(els.length>1?"s":"")+' · '
+      + (ap ? esc(ap.nom) : "pas d'APSA en cours") + (c.noter ? "" : " · sans note") + '</span></span>'
+      + (al ? '<span class="badge b-alert">'+al+' ⚠</span>' : '')
+      + '<span class="chev">›</span></button>';
+  });
+  h += '</div></div><div class="sect"><button class="btn wide" id="newc">+ Nouvelle classe</button></div>';
+  app.innerHTML = h;
+  each("[data-c]", function(b){ b.onclick = function(){ go({n:"classe", id:b.dataset.c}); }; });
+  on("#newc", function(){ sheetClasse(null); });
+}
+
+/* ══════════ Vue : une classe ══════════ */
+function vueClasse(){
+  var c = classeById(view.id);
+  if(!c) return go({n:"classes"});
+  var els = elevesDe(c.id);
+  var sousTitre = els.length + " élève" + (els.length>1?"s":"")
+    + (estGroupe(c) ? " · groupe de " + classeParente(c).nom : "");
+  var h = header(c.nom, sousTitre, true, c.nom);
+  var sty = styleClasse(c.nom);
+
+  h += '<div class="sect"'+sty+'><span class="eyebrow">APSA programmées</span><div class="plist">';
+  var aps = S.apsa.filter(function(a){ return a.classeId===c.id; })
+    .sort(function(a,b){ return (a.debut||"").localeCompare(b.debut||""); });
+  if(!aps.length) h += '<div class="empty">Aucune APSA programmée.<br>Exemple : « Natation, du 15/09 au 15/10 ».</div>';
+  aps.forEach(function(a){
+    var enc = (!a.debut || a.debut<=AUJ()) && (!a.fin || a.fin>=AUJ());
+    var nbS = datesSeances(c.id, a).length;
+    var faites = datesSeances(c.id, a).filter(function(d){ return d.date < AUJ(); }).length;
+    h += '<button class="prow" data-apsa="'+a.id+'"><span class="grow truncate"><span class="nm">'+esc(a.nom)+'</span><br>'
+      + '<span class="meta num">'+frDate(a.debut)+' → '+frDate(a.fin)+' · '
+      + (enc ? "séance "+Math.min(faites+1, nbS)+"/"+nbS : nbS+" séances") + '</span>'
+      + (a.creneau ? '<span class="meta">'+esc(libelleCreneau(a.creneau))+' uniquement</span>' : '')
+      + '</span>'
+      + (enc ? '<span class="badge b-ok">en cours</span>' : '')
+      + '<span class="chev">›</span></button>';
+  });
+  h += '</div><div class="row" style="margin-top:10px">'
+    + '<button class="btn sm grow" id="addapsa">+ APSA</button>'
+    + '<button class="btn sm grow" id="editc">Réglages classe</button></div></div>';
+
+  h += '<div class="sect"'+sty+'><span class="eyebrow">Élèves</span><div class="plist">';
+  if(!els.length) h += '<div class="empty">Liste vide.</div>';
+  els.forEach(function(e){
+    var o = oublisDepuisSanction(e.id), tot = nbOublis(e.id), m = moyenne(e.id);
+    h += '<button class="prow" data-e="'+e.id+'">'
+      + '<span class="avatar '+(o>=S.seuil?"alert":(o===S.seuil-1?"warn":""))+'">'+esc(initiales(e))+'</span>'
+      + '<span class="grow truncate"><span class="nm">'+esc(e.nom.toUpperCase())+' '+esc(e.prenom)+'</span><br>'
+      + '<span class="meta">'+tot+' oubli'+(tot>1?"s":"")+(c.noter && m ? " · moy. "+m+"/20" : "")+'</span></span>'
+      + (o>=S.seuil ? '<span class="badge b-alert">sanction</span>' : '')
+      + '<span class="chev">›</span></button>';
+  });
+  h += '</div><div class="row" style="margin-top:10px">'
+    + '<button class="btn sm grow" id="addel">'+(estGroupe(c) ? "Composition du groupe" : "+ Élèves")+'</button>'
+    + '<button class="btn sm grow" id="seance">Ouvrir une séance</button></div>'
+    + (function(){
+        var apc = apsaCourante(c.id);
+        if(!apc) return '';
+        var n = niveauxDe(apc).length;
+        return '<button class="btn wide" id="niveaux" style="margin-top:8px">'
+          + (n ? "Groupes de niveau — " + esc(apc.nom) + " (" + n + ")"
+               : "Créer des groupes de niveau en " + esc(apc.nom)) + '</button>';
+      })()
+    + '</div>';
+
+  app.innerHTML = h;
+  on("#back", function(){ go({n:"classes"}); });
+  on("#addapsa", function(){ sheetAPSA(c.id); });
+  on("#editc", function(){ sheetClasse(c.id); });
+  on("#addel", function(){ estGroupe(c) ? sheetComposition(c.id) : sheetImportEleves(c.id); });
+  on("#seance", function(){ go({n:"seance", classeId:c.id, date:AUJ()}); });
+  on("#niveaux", function(){
+    var apc = apsaCourante(c.id);
+    go({n:"groupes", classeId:c.id, apsaId:apc ? apc.id : null, from:{n:"classe", id:c.id}});
+  });
+  each("[data-e]", function(b){ b.onclick = function(){ go({n:"eleve", id:b.dataset.e, from:{n:"classe", id:c.id}}); }; });
+  each("[data-apsa]", function(b){
+    b.onclick = function(){ go({n:"cycle", classeId:c.id, apsaId:b.dataset.apsa, from:{n:"classe", id:c.id}}); };
+  });
+}
+
+/* ══════════ Vue : recherche d'élèves ══════════ */
+function vueEleves(){
+  var h = header("Élèves", S.eleves.length + " au total", false);
+  h += '<div class="sect"><input type="text" id="q" placeholder="Rechercher un nom…" value="'+esc(recherche)+'"></div>';
+  var nDisp = dispensesEnCours(AUJ()).length;
+  h += '<div class="sect"><button class="btn wide" id="godisp">'
+    + (nDisp ? "Dispenses en cours (" + nDisp + ")" : "Dispenses") + '</button></div>';
+  var q = recherche.trim().toLowerCase();
+  var l = S.eleves.filter(function(e){ return !q || (e.nom+" "+e.prenom).toLowerCase().indexOf(q) >= 0; })
+    .sort(function(a,b){ return (a.nom+a.prenom).localeCompare(b.nom+b.prenom,"fr"); }).slice(0,100);
+  h += '<div class="sect"><div class="plist">';
+  if(!S.eleves.length) h += '<div class="empty">Aucun élève enregistré.<br>Va dans <b>Classes</b>, choisis une classe, puis « + Élèves ».</div>';
+  else if(!l.length) h += '<div class="empty">Aucun résultat pour « '+esc(recherche)+' ».</div>';
+  l.forEach(function(e){
+    var o = oublisDepuisSanction(e.id), c = classeById(e.classeId);
+    h += '<button class="prow tinted" data-e="'+e.id+'"'+styleClasse(c?c.nom:"")+'>'
+      + '<span class="avatar '+(o>=S.seuil?"alert":(o===S.seuil-1?"warn":""))+'">'+esc(initiales(e))+'</span>'
+      + '<span class="grow truncate"><span class="nm">'+esc(e.nom.toUpperCase())+' '+esc(e.prenom)+'</span><br>'
+      + '<span class="meta">'+nbOublis(e.id)+' oubli'+(nbOublis(e.id)>1?"s":"")+'</span></span>'
+      + '<span class="badge b-classe">'+esc(c?c.nom:"—")+'</span>'
+      + '<span class="chev">›</span></button>';
+  });
+  h += '</div></div>';
+  app.innerHTML = h;
+  var qi = app.querySelector("#q");
+  qi.oninput = function(){
+    var p = qi.selectionStart; recherche = qi.value; render();
+    var n = document.getElementById("q");
+    if(n){ n.focus(); try{ n.setSelectionRange(p,p); }catch(err){} }
+  };
+  on("#godisp", function(){ go({n:"dispenses", from:{n:"eleves"}}); });
+  each("[data-e]", function(b){ b.onclick = function(){ go({n:"eleve", id:b.dataset.e, from:{n:"eleves"}}); }; });
+}
+
+/* ══════════ Vue : fiche élève ══════════ */
+function vueEleve(){
+  var e = eleveById(view.id);
+  if(!e) return go({n:"eleves"});
+  var cl = classeById(e.classeId);
+  var o = oublisDepuisSanction(e.id);
+  var m = moyenne(e.id);
+  var rems = S.events.filter(function(x){ return x.eleveId===e.id && (x.type==="remarque"||x.type==="positif"); }).length;
+
+  var sty = styleClasse(cl ? cl.nom : "");
+  var h = header(e.prenom + " " + e.nom.toUpperCase(), cl ? cl.nom : "", true, cl ? cl.nom : null);
+  h += '<div class="sect"'+sty+'><div class="hero"><div class="row">'
+    + '<span class="avatar '+(o>=S.seuil?"alert":(o===S.seuil-1?"warn":""))+'" style="width:48px;height:48px;font-size:16px">'+esc(initiales(e))+'</span>'
+    + '<div class="grow truncate"><div class="nm">'+esc(e.prenom)+' '+esc(e.nom.toUpperCase())+'</div>'
+    + '<div class="muted" style="font-size:13px">'+esc(cl?cl.nom:"")
+    + (cl && !cl.noter ? " · évalué par compétences" : "") + '</div></div>'
+    + '<button class="btn sm" id="edite">Modifier</button></div>'
+    + '<div class="stats">'
+    + '<div class="stat '+(o>=S.seuil?"is-alert":(o===S.seuil-1?"is-warn":""))+'"><b class="num">'+o+'/'+S.seuil+'</b><span>OUBLIS EN COURS</span></div>'
+    + '<div class="stat is-note"><b class="num">'+(cl && cl.noter ? (m||"—") : "—")+'</b><span>MOYENNE /20</span></div>'
+    + '<div class="stat is-rem"><b class="num">'+rems+'</b><span>REMARQUES</span></div></div>';
+  if(o >= S.seuil){
+    h += '<div class="sanction" style="margin-top:14px"><span style="font-size:20px">⚠</span><div class="grow">'
+      + '<b>Seuil de sanction atteint</b><p>'+o+' oublis depuis la dernière sanction.</p>'
+      + '<button class="btn sm primary" id="sanc" style="margin-top:10px">Poser la sanction</button></div></div>';
+  }
+  h += '</div></div>';
+
+  var ongl = [["suivi","Suivi"]];
+  if(cl && cl.noter) ongl.push(["notes","Notes"]);
+  ongl.push(["comp","Compétences"]);
+  if(!ongl.some(function(x){ return x[0]===ongletFiche; })) ongletFiche = "suivi";
+  h += '<div class="tabs"'+sty+'>' + ongl.map(function(x){
+    return '<button data-o="'+x[0]+'" aria-selected="'+(ongletFiche===x[0])+'">'+x[1]+'</button>';
+  }).join("") + '</div>';
+
+  h += '<div class="sect"'+sty+'><div class="stack" style="gap:8px">';
+
+  if(ongletFiche === "suivi"){
+    var LBL = {oubli:["Oubli de tenue","b-warn"], absent:["Absent","b-alert"],
+      dispense:["Dispensé","b-accent"], remarque:["Remarque","b-quiet"],
+      sanction:["Sanction posée","b-alert"], positif:["Point positif","b-ok"]};
+    var evs = S.events.filter(function(x){ return x.eleveId===e.id; })
+      .sort(function(a,b){ return b.date.localeCompare(a.date) || b.id.localeCompare(a.id); });
+    if(!evs.length) h += '<div class="empty">Rien à signaler pour l\'instant.</div>';
+    evs.forEach(function(x){
+      var L = LBL[x.type] || ["Événement","b-quiet"];
+      h += '<div class="item"><div class="row"><span class="badge '+L[1]+'">'+L[0]+'</span>'
+        + '<span class="when num grow">'+frDate(x.date)+'</span>'
+        + '<button class="btn sm ghost" data-del="'+x.id+'" aria-label="Supprimer">✕</button></div>'
+        + (x.texte ? '<p>'+esc(x.texte)+'</p>' : '') + '</div>';
+    });
+    h += '</div><div class="row" style="margin-top:12px">'
+      + '<button class="btn sm grow" id="addrem">+ Remarque</button>'
+      + '<button class="btn sm grow" id="addpos">+ Positif</button>'
+      + '<button class="btn sm grow" id="addoub">+ Oubli</button></div></div>';
+
+    var perfs = perfsDe(e.id);
+    if(perfs.length){
+      h += '<div class="sect"'+sty+'><span class="eyebrow">Performances</span><div class="stack" style="gap:8px">'
+        + perfs.slice(0, 20).map(function(p){
+            var ep = epreuveById(p.epreuveId);
+            var b = meilleurEssai(p.essais, ep.sens);
+            var det = (p.essais || []).map(function(v){ return v == null ? "—" : nombreFr(v); }).join(" · ");
+            return '<div class="note-line"><span class="note-val">'+(b == null ? "—" : nombreFr(b))
+              + '<small> '+ep.unite+'</small></span>'
+              + '<span class="grow truncate"><b style="font-size:14px">'+esc(ep.nom)+'</b><br>'
+              + '<span class="muted num" style="font-size:12px">'+frDate(p.date)+' · essais '+det+'</span></span></div>';
+          }).join("") + '</div></div>';
+    }
+
+    var disps = dispensesDe(e.id);
+    h += '<div class="sect"'+sty+'><span class="eyebrow">Dispenses</span><div class="stack" style="gap:8px">';
+    if(!disps.length) h += '<div class="empty">Aucune dispense enregistrée.</div>';
+    h += disps.map(function(d){ return ligneDispense(d, false); }).join("")
+      + '</div><button class="btn wide" id="adddisp" style="margin-top:10px">'
+      + '+ Photographier une dispense</button></div>';
+  }
+
+  if(ongletFiche === "notes"){
+    var notes = S.notes.filter(function(n){ return n.eleveId===e.id; })
+      .sort(function(a,b){ return b.date.localeCompare(a.date); });
+    if(!notes.length) h += '<div class="empty">Aucune note enregistrée.</div>';
+    notes.forEach(function(n){
+      var a = S.apsa.filter(function(x){ return x.id===n.apsaId; })[0];
+      h += '<div class="note-line"><span class="note-val">'+n.valeur+'<small>/'+n.sur+'</small></span>'
+        + '<span class="grow truncate"><b style="font-size:14px">'+esc(n.libelle || (a?a.nom:"Évaluation"))+'</b><br>'
+        + '<span class="muted num" style="font-size:12px">'+(a?esc(a.nom)+" · ":"")+frDate(n.date)+'</span></span>'
+        + '<button class="btn sm ghost" data-deln="'+n.id+'" aria-label="Supprimer">✕</button></div>';
+    });
+    h += '</div><div class="sect"><button class="btn wide" id="addnote">+ Ajouter une note</button></div>';
+  }
+
+  if(ongletFiche === "comp"){
+    S.competences.forEach(function(c){
+      var rec = S.comps.filter(function(x){ return x.eleveId===e.id && x.compId===c.id; })
+        .sort(function(a,b){ return b.date.localeCompare(a.date); })[0];
+      var apn = rec && rec.apsaId ? (S.apsa.filter(function(a){return a.id===rec.apsaId})[0]||{}).nom : null;
+      h += '<div class="comp"><div class="lbl">'+esc(c.lbl)+'</div><div class="levels">'
+        + NIVEAUX.map(function(n){
+            return '<button class="lv lv'+n.n+'" aria-pressed="'+(!!rec && rec.niveau===n.n)+'" data-cc="'+c.id+'" data-n="'+n.n+'" title="'+n.long+'">'+n.court+'</button>';
+          }).join("")
+        + '</div><div class="lv-legend">'
+        + (rec ? "Évalué le "+frDate(rec.date)+(apn ? " — "+esc(apn) : "") : "Pas encore évalué")
+        + '</div></div>';
+    });
+    h += '</div><div class="sect"><p class="muted" style="font-size:12px;margin:0">'
+      + 'MI maîtrise insuffisante · MF fragile · MS satisfaisante · TBM très bonne maîtrise. '
+      + 'Touche à nouveau le même niveau pour l\'effacer.</p></div>';
+  }
+
+  app.innerHTML = h;
+  on("#back", function(){ go(view.from || {n:"eleves"}); });
+  each("[data-o]", function(b){ b.onclick = function(){ ongletFiche = b.dataset.o; render(); }; });
+  on("#edite", function(){ sheetEleve(e.id); });
+  on("#sanc", function(){ poserSanction(e.id); });
+  on("#addrem", function(){ sheetRemarque(e.id, AUJ()); });
+  on("#addpos", function(){ sheetRemarque(e.id, AUJ(), "positif"); });
+  on("#addoub", function(){ bascule(e.id, "oubli", AUJ()); });
+  on("#addnote", function(){ sheetNote(e.id, apsaEnCours(e.classeId, AUJ())); });
+  on("#adddisp", function(){ sheetDispense(e.id, null); });
+  brancherDispenses();
+  each("[data-del]", function(b){
+    b.onclick = function(){
+      S.events = S.events.filter(function(x){ return x.id !== b.dataset.del; });
+      save(); render(); toast("Supprimé");
+    };
+  });
+  each("[data-deln]", function(b){
+    b.onclick = function(){
+      S.notes = S.notes.filter(function(x){ return x.id !== b.dataset.deln; });
+      save(); render(); toast("Note supprimée");
+    };
+  });
+  each("[data-cc]", function(b){
+    b.onclick = function(){ noterCompetence(e, b.dataset.cc, +b.dataset.n, apsaEnCours(e.classeId, AUJ())); render(); };
+  });
+}
+
+function noterCompetence(e, compId, niveau, ap){
+  var i = -1;
+  S.comps.forEach(function(x,k){ if(x.eleveId===e.id && x.compId===compId) i = k; });
+  if(i >= 0 && S.comps[i].niveau === niveau) S.comps.splice(i,1);
+  else if(i >= 0){ S.comps[i].niveau = niveau; S.comps[i].date = AUJ(); S.comps[i].apsaId = ap ? ap.id : null; }
+  else S.comps.push({id:uid(), eleveId:e.id, compId:compId, niveau:niveau, date:AUJ(), apsaId:ap?ap.id:null});
+  save();
+}
+
+/* ══════════ Vue : réglages ══════════ */
+function vueReglages(){
+  var h = header("Réglages", "Carnet EPS", false);
+
+  h += '<div class="sect"><span class="eyebrow">Sanction</span><div class="card" style="padding:14px">'
+    + '<label class="field"><span>Oublis avant sanction</span>'
+    + '<input type="number" id="seuil" min="1" max="10" value="'+S.seuil+'"></label>'
+    + '<p class="muted" style="font-size:13px;margin:10px 0 0">Le compteur d\'un élève repart à zéro dès qu\'une sanction est enregistrée. Le total des oublis, lui, reste visible sur sa fiche.</p></div></div>';
+
+  h += '<div class="sect"><span class="eyebrow">Compétences évaluées</span><div class="plist">';
+  S.competences.forEach(function(c){
+    h += '<div class="prow"><span class="grow">'+esc(c.lbl)+'</span>'
+      + '<button class="btn sm ghost" data-delc="'+c.id+'" aria-label="Supprimer">✕</button></div>';
+  });
+  h += '</div><div class="row" style="margin-top:10px">'
+    + '<input type="text" id="nc" placeholder="Nouvelle compétence"><button class="btn" id="addc">+</button></div></div>';
+
+  h += '<div class="sect"><span class="eyebrow">Emploi du temps</span><div class="card" style="padding:6px 14px">';
+  JOURS.forEach(function(j,i){
+    var l = EDT.filter(function(c){ return c.jour===i+1; })
+      .sort(function(a,b){ return ORDRE_SLOT.indexOf(a.slot) - ORDRE_SLOT.indexOf(b.slot); });
+    h += '<div class="edt-line"><b class="j">'+j+'</b><span class="grow">'
+      + (l.length ? l.map(function(c){
+          return c.slot+' <b>'+esc(c.classe)+'</b>'
+            + (c.variante ? ' <span class="muted">(sem. '+(c.variante==="A"?"impaire":"paire")+')</span>' : '');
+        }).join("<br>") : '<span class="muted">—</span>')
+      + '</span></div>';
+  });
+  h += '</div></div>';
+
+  h += '<div class="sect"><span class="eyebrow">Sauvegarde</span><div class="stack" style="gap:10px">'
+    + '<p class="muted" style="font-size:13px;margin:0">Les données restent dans ce navigateur, sur cet appareil : elles ne suivent ni un changement de téléphone, ni un changement d\'adresse de l\'appli. Exporte une copie de temps en temps, et avant tout déménagement.</p>'
+    + '<button class="btn wide" id="exp">Exporter mes données</button>'
+    + '<button class="btn wide" id="imp">Importer une sauvegarde</button>'
+    + '<input type="file" id="file" accept="application/json,.json" hidden>'
+    + '<button class="btn wide danger" id="raz">Tout effacer</button></div></div>'
+
+    + '<div class="sect"><span class="eyebrow">Essayer l\'appli</span><div class="stack" style="gap:10px">'
+    + '<p class="muted" style="font-size:13px;margin:0">Remplace tes élèves par des élèves fictifs avec des oublis, des notes et un cycle de natation rédigé, pour voir comment tout fonctionne.</p>'
+    + '<button class="btn wide" id="demo">Charger des élèves de démonstration</button></div></div>'
+    + '<div class="sect"><p class="muted" style="font-size:12px;margin:0">Sur le téléphone : ouvre cette page dans le navigateur, puis « Ajouter à l\'écran d\'accueil ». Elle se lance ensuite comme une appli.</p></div>';
+
+  app.innerHTML = h;
+
+  var si = app.querySelector("#seuil");
+  si.onchange = function(){
+    var v = Math.max(1, Math.min(10, parseInt(si.value,10) || 3));
+    S.seuil = v; save(); render(); toast("Sanction au bout de "+v+" oublis");
+  };
+  on("#addc", function(){
+    var i = app.querySelector("#nc"), v = i.value.trim();
+    if(!v) return toast("Écris d'abord le nom de la compétence");
+    S.competences.push({id:uid(), lbl:v}); save(); render(); toast("Compétence ajoutée");
+  });
+  each("[data-delc]", function(b){
+    b.onclick = function(){
+      S.competences = S.competences.filter(function(c){ return c.id !== b.dataset.delc; });
+      S.comps = S.comps.filter(function(c){ return c.compId !== b.dataset.delc; });
+      save(); render();
+    };
+  });
+  on("#exp", exporter);
+  on("#imp", function(){ app.querySelector("#file").click(); });
+  app.querySelector("#file").onchange = function(ev){
+    var f = ev.target.files[0];
+    /* On vide le champ : rechoisir le même fichier doit redéclencher l'import. */
+    ev.target.value = "";
+    if(!f) return;
+    importerSauvegarde(f);
+  };
+  on("#demo", function(){
+    ouvrirSheet("Charger la démonstration ?",
+      '<p class="muted" style="margin:0">Les élèves, oublis, remarques, notes et compétences actuels seront remplacés par un jeu de données fictif. Tes classes et ton emploi du temps ne changent pas.</p>'
+      + '<button class="btn wide primary" id="ok">Charger la démonstration</button>'
+      + '<button class="btn wide ghost" id="no">Annuler</button>',
+      function(root){
+        root.querySelector("#no").onclick = fermerSheet;
+        root.querySelector("#ok").onclick = function(){
+          chargerDemo(); fermerSheet(); go({n:"jour", date:AUJ()});
+          toast("Démonstration chargée — regarde l'onglet Séances");
+        };
+      });
+  });
+
+  on("#raz", function(){
+    ouvrirSheet("Tout effacer ?",
+      '<p class="muted" style="margin:0">Élèves, oublis, remarques, notes et compétences seront perdus. C\'est définitif.</p>'
+      + '<button class="btn wide danger" id="ok">Oui, tout effacer</button>'
+      + '<button class="btn wide ghost" id="no">Annuler</button>',
+      function(root){
+        root.querySelector("#no").onclick = fermerSheet;
+        root.querySelector("#ok").onclick = function(){
+          S = defaults(); save(); fermerSheet(); go({n:"jour", date:AUJ()}); toast("Données effacées");
+        };
+      });
+  });
+}
+
+/* ══════════ Jeu de données de démonstration ══════════ */
+function chargerDemo(){
+  var NOMS = ["DUPONT","MARTIN","BERNARD","THOMAS","PETIT","ROBERT","RICHARD","DURAND","LEROY","MOREAU",
+    "SIMON","LAURENT","LEFEVRE","MICHEL","GARCIA","DAVID","BERTRAND","ROUX","VINCENT","FOURNIER",
+    "MOREL","GIRARD","ANDRE","MERCIER","BLANC","GUERIN","BOYER","GARNIER","CHEVALIER","FRANCOIS",
+    "LEGRAND","GAUTHIER","PERRIN","ROBIN","CLEMENT","MORIN","NICOLAS","HENRY","ROUSSEAU","MATHIEU",
+    "BEN AMAR","DIALLO","TRAORE","NGUYEN","SANCHEZ","LOPES","FERREIRA","KOUASSI","EL HADJI","BARBOSA"];
+  var PRENOMS = ["Jordan","Léa","Sofia","Enzo","Chloé","Nathan","Manon","Lucas","Camille","Hugo",
+    "Inès","Théo","Jade","Maël","Louna","Rayan","Emma","Adam","Lina","Noah",
+    "Sarah","Ilyes","Anaïs","Gabriel","Maëlys","Amine","Zoé","Ethan","Nour","Timéo",
+    "Alicia","Yanis","Romane","Elsa","Mattéo","Assia","Raphaël","Maya","Sacha","Louise"];
+  var APSA_DEMO = {
+    "6E1":["Course d'orientation","Jeux collectifs"],
+    "5E1":["Natation","Gymnastique"],
+    "5E2":["Natation","Gymnastique"],
+    "4E4":["Acrosport","Tennis de table"],
+    "3E2":["Badminton","Danse"],
+    "3E2P.1":["Demi-fond"], "3E2P.2":["Demi-fond"],
+    "4E4P.1":["Renforcement musculaire"], "4E4P.2":["Renforcement musculaire"]
+  };
+  var REMARQUES = [
+    "A oublié ses baskets, participe en rôle d'observateur.",
+    "Très bonne implication, aide à l'installation du matériel.",
+    "Bavardages pendant les consignes, rappel à l'ordre.",
+    "Progrès nets sur la technique, félicité devant le groupe.",
+    "Refuse de se mettre en binôme, à revoir avec le professeur principal.",
+    "Arrive en retard de 10 minutes, mot dans le carnet.",
+    "Prend le rôle d'arbitre avec sérieux et impartialité.",
+    "Se plaint de douleurs au genou, à surveiller.",
+    "Excellent esprit d'équipe, encourage les plus en difficulté.",
+    "Ne respecte pas les consignes de sécurité à l'échauffement."
+  ];
+  var POSITIFS = [
+    "A porté le groupe pendant tout l'échauffement.",
+    "Belle progression : sait maintenant enchaîner sans aide.",
+    "S'est proposé spontanément pour ranger le matériel.",
+    "A expliqué la consigne à un camarade qui n'avait pas compris."
+  ];
+
+  var SEANCES_NATATION = [
+    {num:1, titre:"Découverte du bassin et entrées dans l'eau",
+     objectif:"Accepter l'immersion du visage et entrer dans l'eau sans appréhension.",
+     materiel:"12 frites, 8 planches, 4 cerceaux lestés",
+     deroule:"Présentation des règles de sécurité et du plan du bassin\nÉchauffement 10 min — déplacements en petite profondeur, appuis au mur\nSituation 1 — entrées par les pieds depuis le bord, puis assis\nSituation 2 — souffler dans l'eau, bouche puis nez, visage immergé\nRetour au calme — remontée passive avec la frite"},
+    {num:2, titre:"Immersion complète et équilibre",
+     objectif:"Se laisser flotter sur le ventre et sur le dos, sans reprise d'appui.",
+     materiel:"12 frites, 8 planches, 6 anneaux lestés",
+     deroule:"Échauffement — parcours d'entrées vues en séance 1\nSituation 1 — l'étoile de mer ventrale, 5 secondes\nSituation 2 — l'étoile dorsale avec aide de la frite puis sans\nSituation 3 — ramasser un anneau à 1 m de profondeur\nRetour au calme — flotter en binôme, l'un guide l'autre"},
+    {num:3, titre:"Déplacement ventral et propulsion",
+     objectif:"Parcourir 10 m en position ventrale avec un mouvement de jambes continu.",
+     materiel:"8 planches, 12 frites, plots de repère tous les 5 m",
+     deroule:"Échauffement — 2 × 15 m avec planche\nSituation 1 — battements de jambes accrochés au mur, puis avec planche\nSituation 2 — coulée ventrale depuis le mur, aller le plus loin possible\nSituation 3 — 10 m enchaînés avec respiration latérale\nRetour au calme — étirements au bord"}
+  ];
+
+  function decale(n){ var d = new Date(); d.setDate(d.getDate() + n); return iso(d); }
+  function pick(a){ return a[Math.floor(Math.random() * a.length)]; }
+  function chance(p){ return Math.random() < p; }
+
+  S.eleves = []; S.events = []; S.notes = []; S.comps = []; S.apsa = [];
+
+  S.classes.filter(function(c){ return !estGroupe(c) && !GROUPES[c.nom]; }).forEach(function(cl){
+    /* APSA : une terminée, une en cours */
+    var liste = APSA_DEMO[cl.nom] || ["Multi-activités"];
+    if(liste.length > 1){
+      S.apsa.push({id:uid(), classeId:cl.id, nom:liste[1], debut:decale(-70), fin:decale(-25)});
+    }
+    var apCourante = {id:uid(), classeId:cl.id, nom:liste[0], debut:decale(-16), fin:decale(24)};
+    if(liste[0] === "Natation") apCourante.seances = JSON.parse(JSON.stringify(SEANCES_NATATION));
+    S.apsa.push(apCourante);
+
+    /* Effectif : classes entières ~24, groupes de besoin ~12 */
+    var effectif = cl.nom.indexOf("P.") > 0 ? 12 : 24;
+    var utilises = {};
+    for (var i = 0; i < effectif; i++){
+      var nom, prenom, cle, essais = 0;
+      do {
+        nom = pick(NOMS); prenom = pick(PRENOMS); cle = nom + "|" + prenom; essais++;
+      } while (utilises[cle] && essais < 40);
+      utilises[cle] = true;
+      S.eleves.push({id:uid(), classeId:cl.id, nom:nom, prenom:prenom});
+    }
+
+    var els = S.eleves.filter(function(e){ return e.classeId === cl.id; });
+
+    els.forEach(function(e, idx){
+      /* Oublis : un élève sur trois environ, le premier de chaque classe en cumule 3 */
+      var nbOub = idx === 0 ? 3 : (chance(.18) ? 2 : (chance(.3) ? 1 : 0));
+      for (var k = 0; k < nbOub; k++){
+        S.events.push({id:uid(), eleveId:e.id, type:"oubli",
+          date:decale(-(3 + k * 7 + Math.floor(Math.random() * 3))), texte:""});
+      }
+      if(nbOub >= 1 && chance(.5)){
+        S.events.push({id:uid(), eleveId:e.id, type:"remarque",
+          date:decale(-(2 + Math.floor(Math.random() * 12))), texte:pick(REMARQUES)});
+      }
+      if(chance(.22)){
+        S.events.push({id:uid(), eleveId:e.id, type:"positif",
+          date:decale(-(1 + Math.floor(Math.random() * 14))), texte:pick(POSITIFS)});
+      }
+      if(chance(.12)){
+        S.events.push({id:uid(), eleveId:e.id, type:"absent", date:decale(-(4 + Math.floor(Math.random() * 10))), texte:""});
+      }
+      if(chance(.07)){
+        S.events.push({id:uid(), eleveId:e.id, type:"dispense", date:decale(-(4 + Math.floor(Math.random() * 10))), texte:""});
+      }
+
+      /* Notes : sauf 6e (classes réglées « sans note chiffrée ») */
+      if(cl.noter){
+        S.notes.push({id:uid(), eleveId:e.id, apsaId:apCourante.id,
+          libelle:"Évaluation intermédiaire " + apCourante.nom.toLowerCase(),
+          valeur:Math.round((7 + Math.random() * 12) * 2) / 2, sur:20, date:decale(-9)});
+        if(chance(.6)){
+          S.notes.push({id:uid(), eleveId:e.id, apsaId:apCourante.id,
+            libelle:"Rôle d'observateur / arbitrage",
+            valeur:Math.round(4 + Math.random() * 6), sur:10, date:decale(-3)});
+        }
+      }
+
+      /* Compétences : évaluées pour environ 3 élèves sur 4 */
+      if(chance(.75)){
+        S.competences.forEach(function(c){
+          if(chance(.85)){
+            S.comps.push({id:uid(), eleveId:e.id, compId:c.id,
+              niveau:1 + Math.floor(Math.random() * 4), date:decale(-6), apsaId:apCourante.id});
+          }
+        });
+      }
+    });
+
+    /* Un élève déjà sanctionné plus tôt, pour montrer la remise à zéro du compteur */
+    if(els.length > 4){
+      var s = els[4];
+      S.events = S.events.filter(function(x){ return !(x.eleveId === s.id && x.type === "oubli"); });
+      S.events.push({id:uid(), eleveId:s.id, type:"oubli", date:decale(-40), texte:""});
+      S.events.push({id:uid(), eleveId:s.id, type:"oubli", date:decale(-33), texte:""});
+      S.events.push({id:uid(), eleveId:s.id, type:"oubli", date:decale(-26), texte:""});
+      S.events.push({id:uid(), eleveId:s.id, type:"sanction", date:decale(-26),
+        texte:"Mot dans le carnet + heure de retenue pour 3 oublis de tenue."});
+      S.events.push({id:uid(), eleveId:s.id, type:"oubli", date:decale(-12), texte:""});
+    }
+  });
+
+  /* Groupes de besoin : moitié alphabétique de la classe parente, mêmes fiches. */
+  S.classes.forEach(function(g){
+    if(!GROUPES[g.nom]) return;
+    var parent = classeByNom(GROUPES[g.nom].parent);
+    if(!parent) return;
+    var tous = elevesDe(parent.id);
+    var moitie = Math.ceil(tous.length / 2);
+    var part = g.nom.slice(-1) === "1" ? tous.slice(0, moitie) : tous.slice(moitie);
+    g.groupe = true;
+    g.membres = part.map(function(e){ return e.id; });
+    var liste = APSA_DEMO[g.nom] || ["Multi-activités"];
+    S.apsa.push({id:uid(), classeId:g.id, nom:liste[0], debut:decale(-16), fin:decale(24)});
+  });
+
+  save();
+}
+
+/* ══════════ Sauvegarde : export et import ══════════
+   Sert notamment à déménager l'appli vers une autre adresse : le stockage
+   du navigateur est propre à un domaine, il ne suit pas le déménagement.
+   CLES_STOCKAGE est dérivé de KEY, jamais recopié à la main : si une clé
+   est ajoutée un jour, il suffit de l'ajouter ici. */
+var VERSION_SAUVEGARDE = 1;
+var CLES_STOCKAGE = [KEY];
+
+function nomFichierSauvegarde(){
+  return "carnet-eps-sauvegarde-" + AUJ() + ".json";
+}
+/* On stocke la valeur brute de chaque clé, telle qu'elle est enregistrée :
+   la forme des objets n'est ni relue ni transformée. */
+function collecterSauvegarde(){
+  var donnees = {}, n = 0;
+  CLES_STOCKAGE.forEach(function(k){
+    var v = null;
+    try { v = localStorage.getItem(k); } catch(e){ v = null; }
+    if(v !== null){ donnees[k] = v; n++; }
+  });
+  return {
+    format: "carnet-eps-sauvegarde",
+    versionSauvegarde: VERSION_SAUVEGARDE,
+    exporteLe: AUJ(),
+    cles: CLES_STOCKAGE.slice(),
+    nbCles: n,
+    donnees: donnees
+  };
+}
+/* Trois voies, de la plus fiable à la plus rudimentaire : l'artefact Claude,
+   le téléchargement classique (celui qui marchera sur la nouvelle adresse),
+   puis le presse-papier si le navigateur bloque tout. */
+function telechargerFichier(nom, texte){
+  try {
+    var blob = new Blob([texte], {type:"application/json"});
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement("a");
+    a.href = url; a.download = nom;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(function(){ URL.revokeObjectURL(url); }, 4000);
+    return true;
+  } catch(e){ return false; }
+}
+
+function exporter(){
+  var paquet = collecterSauvegarde();
+  if(!paquet.nbCles) return toast("Rien à sauvegarder pour l'instant");
+  var data = JSON.stringify(paquet, null, 2);
+  var nom = nomFichierSauvegarde();
+  var use = window.claude && window.claude.use ? window.claude.use("downloads") : null;
+  Promise.resolve(use).then(function(dl){
+    if(dl && dl.save){
+      return dl.save({filename:nom, data:data}).then(function(){ toast("Sauvegarde enregistrée : " + nom); });
+    }
+    if(telechargerFichier(nom, data)){ toast("Sauvegarde téléchargée : " + nom); return; }
+    return navigator.clipboard.writeText(data).then(function(){ toast("Sauvegarde copiée dans le presse-papier"); });
+  }).catch(function(){
+    if(telechargerFichier(nom, data)) toast("Sauvegarde téléchargée : " + nom);
+    else toast("Export refusé ou indisponible sur cet appareil");
+  });
+}
+
+/* Retourne le paquet si le fichier est une sauvegarde exploitable,
+   sinon une chaîne expliquant précisément ce qui ne va pas. */
+function verifierSauvegarde(texte){
+  var d;
+  try { d = JSON.parse(texte); }
+  catch(e){ return "Fichier illisible : ce n'est pas du JSON"; }
+  if(!d || typeof d !== "object" || d instanceof Array) return "Fichier illisible : contenu inattendu";
+
+  /* Ancien export : le contenu de l'appli était écrit directement, sans
+     enveloppe. On l'accepte pour ne pas perdre une sauvegarde déjà faite. */
+  if(d.classes && d.classes instanceof Array && !d.donnees){
+    var ancien = {};
+    ancien[KEY] = JSON.stringify(d);
+    return {format:"carnet-eps-sauvegarde", versionSauvegarde:0,
+            cles:[KEY], nbCles:1, donnees:ancien, ancienFormat:true};
+  }
+
+  if(d.format !== "carnet-eps-sauvegarde") return "Ce fichier n'est pas une sauvegarde du Carnet EPS";
+  if(typeof d.versionSauvegarde !== "number") return "Sauvegarde sans numéro de version : fichier abîmé";
+  if(d.versionSauvegarde > VERSION_SAUVEGARDE){
+    return "Sauvegarde version " + d.versionSauvegarde + ", trop récente pour cette appli";
+  }
+  if(!d.donnees || typeof d.donnees !== "object") return "Sauvegarde vide : aucune donnée à l'intérieur";
+  if(typeof d.donnees[KEY] !== "string") return "Sauvegarde incomplète : les données de l'appli manquent";
+  try { JSON.parse(d.donnees[KEY]); }
+  catch(e){ return "Sauvegarde abîmée : les données sont illisibles"; }
+  return d;
+}
+
+function appliquerSauvegarde(paquet){
+  var ecrites = 0;
+  try {
+    Object.keys(paquet.donnees).forEach(function(k){
+      if(typeof paquet.donnees[k] !== "string") return;
+      localStorage.setItem(k, paquet.donnees[k]);
+      ecrites++;
+    });
+  } catch(e){
+    toast("Stockage plein : import interrompu");
+    return false;
+  }
+  if(!ecrites){ toast("Aucune donnée n'a pu être écrite"); return false; }
+  return true;
+}
+
+function importerSauvegarde(fichier){
+  var r = new FileReader();
+  r.onerror = function(){ toast("Impossible de lire ce fichier"); };
+  r.onload = function(){
+    var res = verifierSauvegarde(r.result);
+    if(typeof res === "string") return toast(res);
+
+    var resume = "";
+    try {
+      var etat = JSON.parse(res.donnees[KEY]);
+      resume = (etat.eleves ? etat.eleves.length : 0) + " élèves, "
+        + (etat.events ? etat.events.length : 0) + " événements, "
+        + (etat.notes ? etat.notes.length : 0) + " notes, "
+        + (etat.rappels ? etat.rappels.length : 0) + " rappels";
+    } catch(e){ resume = "contenu non détaillé"; }
+
+    ouvrirSheet("Importer cette sauvegarde ?",
+      '<p class="muted" style="margin:0">Ça remplacera toutes les données de cet appareil. Continuer ?</p>'
+      + '<div class="card" style="padding:12px"><p class="muted" style="margin:0;font-size:13px">'
+      + 'Sauvegarde du ' + esc(res.exporteLe ? frDate(res.exporteLe) : "date inconnue")
+      + (res.ancienFormat ? ' (ancien format)' : '') + '<br>'
+      + esc(resume) + '</p></div>'
+      + '<button class="btn wide primary" id="ok">Remplacer mes données</button>'
+      + '<button class="btn wide ghost" id="no">Annuler</button>',
+      function(root){
+        root.querySelector("#no").onclick = fermerSheet;
+        root.querySelector("#ok").onclick = function(){
+          if(!appliquerSauvegarde(res)) return;
+          fermerSheet();
+          toast("Sauvegarde importée");
+          /* On recharge la page : l'état est relu depuis le stockage et les
+             migrations de version se rejouent si la sauvegarde est ancienne. */
+          try { location.reload(); }
+          catch(e){
+            try { S = JSON.parse(localStorage.getItem(KEY)); } catch(err){}
+            go({n:"jour", date:AUJ()});
+          }
+        };
+      });
+  };
+  r.readAsText(fichier);
+}
+
+/* ══════════ Feuilles de saisie ══════════ */
+function ouvrirSheet(titre, html, init){
+  fermerSheet();
+  var s = document.createElement("div");
+  s.className = "scrim"; s.setAttribute("role","dialog"); s.setAttribute("aria-modal","true");
+  s.innerHTML = '<div class="sheet"><div class="row" style="margin-bottom:14px">'
+    + '<h3 class="grow">'+titre+'</h3><button class="backbtn" id="x" aria-label="Fermer">✕</button></div>'
+    + '<div class="stack" id="c"></div></div>';
+  document.body.appendChild(s);
+  sheet = s;
+  s.onclick = function(ev){ if(ev.target === s) fermerSheet(); };
+  s.querySelector("#x").onclick = fermerSheet;
+  var c = s.querySelector("#c");
+  c.innerHTML = html;
+  if(init) init(c);
+  var f = c.querySelector("input,textarea,select");
+  if(f) setTimeout(function(){ f.focus(); }, 80);
+}
+function fermerSheet(){ if(sheet){ sheet.remove(); sheet = null; } }
+document.addEventListener("keydown", function(e){ if(e.key === "Escape") fermerSheet(); });
+
+function sheetRemarque(eid, date, type){
+  var e = eleveById(eid), t = type || "remarque";
+  var ph = t === "positif"
+    ? "Ex. : a aidé à installer le matériel, très bon esprit"
+    : "Ex. : a oublié ses baskets, participe en rôle d'observateur";
+  ouvrirSheet((t === "positif" ? "Point positif" : "Remarque") + " — " + esc(e.prenom),
+    '<label class="field"><span>Observation</span><textarea id="tx" placeholder="'+ph+'"></textarea></label>'
+    + '<label class="field"><span>Date</span><input type="date" id="dt" value="'+date+'"></label>'
+    + '<button class="btn primary wide" id="ok">Enregistrer</button>',
+    function(root){
+      root.querySelector("#ok").onclick = function(){
+        var tx = root.querySelector("#tx").value.trim();
+        if(!tx) return toast("Écris d'abord la remarque");
+        S.events.push({id:uid(), eleveId:eid, type:t, date:root.querySelector("#dt").value || date, texte:tx});
+        save(); fermerSheet(); render(); toast("Enregistré");
+      };
+    });
+}
+
+function sheetNote(eid, ap){
+  var e = eleveById(eid), cl = classeById(e.classeId);
+  if(cl && !cl.noter) return toast(cl.nom + " est évaluée sans note chiffrée");
+  var opts = S.apsa.filter(function(a){ return a.classeId===e.classeId; })
+    .map(function(a){ return '<option value="'+a.id+'"'+(ap && ap.id===a.id ? " selected" : "")+'>'+esc(a.nom)+'</option>'; }).join("");
+  ouvrirSheet("Note — " + esc(e.prenom) + " " + esc(e.nom.toUpperCase()),
+    '<label class="field"><span>APSA</span><select id="ap"><option value="">— aucune —</option>'+opts+'</select></label>'
+    + '<label class="field"><span>Intitulé de l\'évaluation</span><input type="text" id="lb" placeholder="Ex. : 50 m nage libre"></label>'
+    + '<div class="row"><label class="field grow"><span>Note</span><input type="number" id="v" step="0.5" min="0" placeholder="14"></label>'
+    + '<label class="field grow"><span>Sur</span><input type="number" id="s" value="20" min="1"></label></div>'
+    + '<label class="field"><span>Date</span><input type="date" id="dt" value="'+AUJ()+'"></label>'
+    + '<button class="btn primary wide" id="ok">Enregistrer la note</button>',
+    function(root){
+      root.querySelector("#ok").onclick = function(){
+        var v = parseFloat(root.querySelector("#v").value);
+        var sur = parseFloat(root.querySelector("#s").value) || 20;
+        if(isNaN(v)) return toast("Saisis une note");
+        if(v < 0 || v > sur) return toast("La note doit être comprise entre 0 et "+sur);
+        S.notes.push({id:uid(), eleveId:eid, apsaId:root.querySelector("#ap").value || null,
+          libelle:root.querySelector("#lb").value.trim(), valeur:v, sur:sur,
+          date:root.querySelector("#dt").value || AUJ()});
+        save(); fermerSheet(); render(); toast("Note enregistrée");
+      };
+    });
+}
+
+function sheetComp(eid, ap){
+  var e = eleveById(eid);
+  function bloc(c){
+    var rec = S.comps.filter(function(x){ return x.eleveId===eid && x.compId===c.id; })[0];
+    return '<div class="comp"><div class="lbl">'+esc(c.lbl)+'</div><div class="levels">'
+      + NIVEAUX.map(function(n){
+          return '<button class="lv lv'+n.n+'" aria-pressed="'+(!!rec && rec.niveau===n.n)+'" data-cc="'+c.id+'" data-n="'+n.n+'" title="'+n.long+'">'+n.court+'</button>';
+        }).join("") + '</div></div>';
+  }
+  ouvrirSheet("Compétences — " + esc(e.prenom),
+    S.competences.map(bloc).join("")
+    + '<p class="lv-legend">MI insuffisante · MF fragile · MS satisfaisante · TBM très bonne maîtrise</p>'
+    + '<button class="btn primary wide" id="ok">Terminé</button>',
+    function(root){
+      root.querySelector("#ok").onclick = function(){ fermerSheet(); render(); };
+      Array.prototype.forEach.call(root.querySelectorAll("[data-cc]"), function(b){
+        b.onclick = function(){
+          var cid = b.dataset.cc;
+          noterCompetence(e, cid, +b.dataset.n, ap);
+          Array.prototype.forEach.call(root.querySelectorAll('[data-cc="'+cid+'"]'), function(x){
+            var actif = S.comps.some(function(y){ return y.eleveId===eid && y.compId===cid && y.niveau === +x.dataset.n; });
+            x.setAttribute("aria-pressed", String(actif));
+          });
+        };
+      });
+    });
+}
+
+function sheetFiche(ap, num, dateSeance, classeId){
+  if(!ap.seances) ap.seances = [];
+  var f = ficheSeance(ap, num) || {num:num, titre:"", objectif:"", materiel:"", deroule:""};
+  ouvrirSheet("Séance " + num + " — " + esc(ap.nom),
+    (dateSeance ? '<p class="muted num" style="margin:0;font-size:13px">'+frLong(dateSeance)+'</p>' : '')
+    + '<label class="field"><span>Titre de la séance</span><input type="text" id="ti" value="'+esc(f.titre)+'" placeholder="Ex. : Découverte du milieu, entrées dans l\'eau"></label>'
+    + '<label class="field"><span>Objectif</span><textarea id="ob" style="min-height:70px" placeholder="Ex. : accepter l\'immersion complète et se laisser flotter">'+esc(f.objectif)+'</textarea></label>'
+    + '<label class="field"><span>Matériel</span><input type="text" id="ma" value="'+esc(f.materiel)+'" placeholder="Ex. : 12 frites, 6 planches, 2 cerceaux lestés"></label>'
+    + '<label class="field"><span>Déroulé</span><textarea id="de" style="min-height:180px" placeholder="Une ligne par étape :&#10;Échauffement 10 min — déplacements variés&#10;Situation 1 — entrées par les pieds&#10;Situation 2 — parcours avec immersion&#10;Retour au calme">'+esc(f.deroule)+'</textarea></label>'
+    + '<label class="field"><span>Lien avec le projet d\'établissement</span><textarea id="pr" style="min-height:80px" placeholder="Ex. : Axe 2 — climat scolaire : binômes imposés à l\'échauffement, chacun observe et corrige son partenaire.">'+esc(f.projet || "")+'</textarea></label>'
+    + '<button class="btn primary wide" id="ok">Enregistrer la fiche</button>'
+    + (ficheSeance(ap, num) ? '<button class="btn wide danger" id="del">Vider cette fiche</button>' : ''),
+    function(root){
+      root.querySelector("#ok").onclick = function(){
+        var maj = {num:num,
+          titre:root.querySelector("#ti").value.trim(),
+          objectif:root.querySelector("#ob").value.trim(),
+          materiel:root.querySelector("#ma").value.trim(),
+          deroule:root.querySelector("#de").value.trim(),
+          projet:root.querySelector("#pr").value.trim()};
+        if(!maj.titre && !maj.objectif && !maj.deroule) return toast("Écris au moins un titre ou un déroulé");
+        ap.seances = ap.seances.filter(function(s){ return s.num !== num; });
+        ap.seances.push(maj);
+        ap.seances.sort(function(a,b){ return a.num - b.num; });
+        save(); fermerSheet(); render(); toast("Séance " + num + " enregistrée");
+      };
+      var d = root.querySelector("#del");
+      if(d) d.onclick = function(){
+        ap.seances = ap.seances.filter(function(s){ return s.num !== num; });
+        save(); fermerSheet(); render(); toast("Fiche vidée");
+      };
+    });
+}
+
+function sheetAPSA(cid, apsaId){
+  var a = apsaId ? S.apsa.filter(function(x){ return x.id===apsaId; })[0] : null;
+  var cl = classeById(a ? a.classeId : cid);
+  var cren = cl ? creneauxDe(cl.nom) : [];
+  var optsCren = '<option value="">Tous les créneaux de la classe</option>'
+    + cren.map(function(c){
+        return '<option value="'+c.cle+'"'+(a && a.creneau === c.cle ? " selected" : "")+'>'
+          + esc(c.lbl)+'</option>';
+      }).join("");
+  ouvrirSheet(a ? "Modifier l'APSA" : "Nouvelle APSA",
+    '<label class="field"><span>Activité</span><input type="text" id="nm" value="'+(a?esc(a.nom):"")+'" placeholder="Ex. : Natation"></label>'
+    + '<div class="row"><label class="field grow"><span>Du</span><input type="date" id="d1" value="'+(a?a.debut:AUJ())+'"></label>'
+    + '<label class="field grow"><span>Au</span><input type="date" id="d2" value="'+(a && a.fin ? a.fin : "")+'"></label></div>'
+    + (cren.length > 1
+        ? '<label class="field"><span>Créneau concerné</span><select id="cr">'+optsCren+'</select></label>'
+          + '<p class="muted" style="font-size:12px;margin:0">Laisse « tous les créneaux » si le cycle se déroule indifféremment sur les deux. Choisis un créneau précis quand la classe mène deux cycles en parallèle.</p>'
+        : '')
+    + '<button class="btn primary wide" id="ok">'+(a ? "Enregistrer" : "Ajouter l'APSA")+'</button>'
+    + (a ? '<button class="btn wide danger" id="del">Supprimer cette APSA</button>' : ''),
+    function(root){
+      root.querySelector("#ok").onclick = function(){
+        var nm = root.querySelector("#nm").value.trim();
+        var d1 = root.querySelector("#d1").value, d2 = root.querySelector("#d2").value;
+        var sc = root.querySelector("#cr");
+        var cr = sc ? (sc.value || null) : (a ? (a.creneau || null) : null);
+        if(!nm) return toast("Donne un nom à l'activité");
+        if(d1 && d2 && d2 < d1) return toast("La date de fin précède la date de début");
+        if(a){ a.nom = nm; a.debut = d1; a.fin = d2; a.creneau = cr; }
+        else S.apsa.push({id:uid(), classeId:cid, nom:nm, debut:d1, fin:d2, creneau:cr});
+        save(); fermerSheet(); render(); toast("APSA enregistrée");
+      };
+      var d = root.querySelector("#del");
+      if(d) d.onclick = function(){
+        S.apsa = S.apsa.filter(function(x){ return x.id !== a.id; });
+        save(); fermerSheet(); render(); toast("APSA supprimée");
+      };
+    });
+}
+
+function sheetClasse(cid){
+  var c = cid ? classeById(cid) : null;
+  ouvrirSheet(c ? "Réglages de " + esc(c.nom) : "Nouvelle classe",
+    '<label class="field"><span>Nom de la classe</span><input type="text" id="nm" value="'+(c?esc(c.nom):"")+'" placeholder="Ex. : 5E3"></label>'
+    + '<label class="row" style="gap:12px"><input type="checkbox" id="nt" class="check"'+((!c || c.noter) ? " checked" : "")+'>'
+    + '<span class="grow">Notes chiffrées<span class="muted" style="display:block;font-size:13px">Décoche pour les 6e : évaluation par compétences uniquement.</span></span></label>'
+    + (c && estGroupe(c) ? '<p class="muted" style="margin:0;font-size:13px">Groupe de besoin issu de '+esc(classeParente(c).nom)+' : il partage les fiches de la classe entière.</p>' : '')
+    + '<button class="btn primary wide" id="ok">'+(c ? "Enregistrer" : "Créer la classe")+'</button>'
+    + (c ? '<button class="btn wide danger" id="del">'
+        + (estGroupe(c) ? "Supprimer le groupe (les élèves restent)" : "Supprimer la classe et ses élèves")
+        + '</button>' : ''),
+    function(root){
+      root.querySelector("#ok").onclick = function(){
+        var nm = root.querySelector("#nm").value.trim(), nt = root.querySelector("#nt").checked;
+        if(!nm) return toast("Donne un nom à la classe");
+        if(c){ c.nom = nm; c.noter = nt; }
+        else S.classes.push({id:uid(), nom:nm, noter:nt});
+        save(); fermerSheet(); render(); toast("Classe enregistrée");
+      };
+      var d = root.querySelector("#del");
+      if(d) d.onclick = function(){
+        if(estGroupe(c)){
+          /* Un groupe ne possède pas ses élèves : on ne retire que le groupe. */
+          S.apsa = S.apsa.filter(function(x){ return x.classeId !== c.id; });
+          S.classes = S.classes.filter(function(x){ return x.id !== c.id; });
+          save(); fermerSheet(); go({n:"classes"}); toast("Groupe supprimé, élèves conservés");
+          return;
+        }
+        var ids = S.eleves.filter(function(e){ return e.classeId===c.id; }).map(function(e){ return e.id; });
+        S.eleves = S.eleves.filter(function(e){ return e.classeId !== c.id; });
+        S.events = S.events.filter(function(x){ return ids.indexOf(x.eleveId) < 0; });
+        S.notes  = S.notes.filter(function(x){ return ids.indexOf(x.eleveId) < 0; });
+        S.comps  = S.comps.filter(function(x){ return ids.indexOf(x.eleveId) < 0; });
+        S.apsa   = S.apsa.filter(function(x){ return x.classeId !== c.id; });
+        S.classes = S.classes.filter(function(x){ return x.id !== c.id; });
+        save(); fermerSheet(); go({n:"classes"}); toast("Classe supprimée");
+      };
+    });
+}
+
+function sheetEleve(eid){
+  var e = eleveById(eid);
+  var opts = S.classes.map(function(c){
+    return '<option value="'+c.id+'"'+(c.id===e.classeId ? " selected" : "")+'>'+esc(c.nom)+'</option>';
+  }).join("");
+  ouvrirSheet("Modifier l'élève",
+    '<div class="row"><label class="field grow"><span>Nom</span><input type="text" id="n" value="'+esc(e.nom)+'"></label>'
+    + '<label class="field grow"><span>Prénom</span><input type="text" id="p" value="'+esc(e.prenom)+'"></label></div>'
+    + '<label class="field"><span>Classe</span><select id="c">'+opts+'</select></label>'
+    + '<button class="btn primary wide" id="ok">Enregistrer</button>'
+    + '<button class="btn wide danger" id="del">Supprimer l\'élève</button>',
+    function(root){
+      root.querySelector("#ok").onclick = function(){
+        var n = root.querySelector("#n").value.trim(), p = root.querySelector("#p").value.trim();
+        if(!n && !p) return toast("Saisis au moins un nom");
+        e.nom = n || p; e.prenom = n ? p : ""; e.classeId = root.querySelector("#c").value;
+        save(); fermerSheet(); render(); toast("Enregistré");
+      };
+      root.querySelector("#del").onclick = function(){
+        S.eleves = S.eleves.filter(function(x){ return x.id !== eid; });
+        S.events = S.events.filter(function(x){ return x.eleveId !== eid; });
+        S.notes  = S.notes.filter(function(x){ return x.eleveId !== eid; });
+        S.comps  = S.comps.filter(function(x){ return x.eleveId !== eid; });
+        save(); fermerSheet(); go({n:"classe", id:e.classeId}); toast("Élève supprimé");
+      };
+    });
+}
+
+function sheetComposition(gid){
+  var g = classeById(gid), parent = classeParente(g);
+  if(!parent || parent.id === g.id) return toast("Classe parente introuvable");
+  var tous = elevesDe(parent.id);
+  var dans = (g.membres || []).slice();
+  ouvrirSheet("Composition de " + esc(g.nom),
+    '<p class="muted" style="margin:0;font-size:13px">Coche les élèves de '+esc(parent.nom)+' qui font partie de ce groupe. Ce sont les mêmes fiches : un oubli saisi ici compte aussi en '+esc(parent.nom)+'.</p>'
+    + '<div class="plist" id="ls">' + tous.map(function(e){
+        return '<label class="prow"><input type="checkbox" class="check" data-m="'+e.id+'"'
+          + (dans.indexOf(e.id) >= 0 ? " checked" : "") + '>'
+          + '<span class="grow truncate">'+esc(e.nom.toUpperCase())+' '+esc(e.prenom)+'</span></label>';
+      }).join("") + '</div>'
+    + '<button class="btn primary wide" id="ok">Enregistrer le groupe</button>',
+    function(root){
+      root.querySelector("#ok").onclick = function(){
+        var ids = [];
+        Array.prototype.forEach.call(root.querySelectorAll("[data-m]"), function(b){
+          if(b.checked) ids.push(b.dataset.m);
+        });
+        g.membres = ids; g.groupe = true;
+        save(); fermerSheet(); render();
+        toast(ids.length + " élève" + (ids.length>1 ? "s" : "") + " dans " + g.nom);
+      };
+    });
+}
+
+function sheetException(id, dateDefaut){
+  var x = id ? (S.exceptions || []).filter(function(y){ return y.id === id; })[0] : null;
+  var opts = ORDRE_SLOT.map(function(s){
+    return '<option value="'+s+'"'+(x && x.slot === s ? " selected" : "")+'>'
+      + s + ' · ' + SLOTS[s] + '</option>';
+  }).join("");
+  ouvrirSheet(x ? "Cours exceptionnel" : "Nouveau cours exceptionnel",
+    '<p class="muted" style="margin:0;font-size:13px">Remplacement, RCD, échange de créneau. Il s\'ajoute à la journée sans modifier ton emploi du temps habituel ni le compte de tes séances de cycle.</p>'
+    + '<label class="field"><span>Date</span><input type="date" id="dt" value="'+(x ? x.date : (dateDefaut || AUJ()))+'"></label>'
+    + '<label class="field"><span>Créneau</span><select id="sl">'+opts+'</select></label>'
+    + '<label class="field"><span>Classe et activité</span><input type="text" id="lb" value="'+(x?esc(x.libelle):"")+'" placeholder="Ex. : 4E2 — Volley-ball"></label>'
+    + '<label class="field"><span>Précisions</span><textarea id="no" style="min-height:70px" placeholder="Ex. : remplacement d\'un collègue (RCD), gymnase">'+(x?esc(x.note||""):"")+'</textarea></label>'
+    + '<button class="btn primary wide" id="ok">'+(x ? "Enregistrer" : "Ajouter au planning")+'</button>'
+    + (x ? '<button class="btn wide danger" id="del">Supprimer ce créneau</button>' : ''),
+    function(root){
+      root.querySelector("#ok").onclick = function(){
+        var dt = root.querySelector("#dt").value;
+        var lb = root.querySelector("#lb").value.trim();
+        if(!dt) return toast("Choisis une date");
+        if(!lb) return toast("Indique au moins la classe");
+        if(!S.exceptions) S.exceptions = [];
+        var maj = {date:dt, slot:root.querySelector("#sl").value, libelle:lb,
+                   note:root.querySelector("#no").value.trim()};
+        if(x){ x.date = maj.date; x.slot = maj.slot; x.libelle = maj.libelle; x.note = maj.note; }
+        else S.exceptions.push({id:uid(), date:maj.date, slot:maj.slot,
+                                libelle:maj.libelle, note:maj.note});
+        save(); fermerSheet(); go({n:"jour", date:maj.date}); toast("Créneau enregistré");
+      };
+      var d = root.querySelector("#del");
+      if(d) d.onclick = function(){
+        S.exceptions = (S.exceptions || []).filter(function(y){ return y.id !== id; });
+        save(); fermerSheet(); render(); toast("Créneau supprimé");
+      };
+    });
+}
+
+function sheetDispense(eid, id){
+  var e = eleveById(eid);
+  var d = id ? (S.dispenses || []).filter(function(x){ return x.id === id; })[0] : null;
+  var photo = d ? (d.photo || "") : "";
+  var opts = Object.keys(ORIGINES).map(function(k){
+    return '<option value="'+k+'"'+(d && d.origine === k ? " selected" : "")+'>'+esc(ORIGINES[k])+'</option>';
+  }).join("");
+  var pct = Math.min(100, Math.round(poidsDonnees() / QUOTA_OCTETS * 100));
+
+  ouvrirSheet((d ? "Modifier la dispense — " : "Dispense — ") + esc(e.prenom),
+    '<div class="row"><label class="field grow"><span>Du</span><input type="date" id="d1" value="'+(d?d.debut:AUJ())+'"></label>'
+    + '<label class="field grow"><span>Au</span><input type="date" id="d2" value="'+(d && d.fin ? d.fin : "")+'"></label></div>'
+    + '<label class="field"><span>Origine</span><select id="or">'+opts+'</select></label>'
+    + '<label class="field"><span>Motif</span><input type="text" id="mo" value="'+(d?esc(d.motif||""):"")+'" placeholder="Ex. : entorse cheville"></label>'
+    + '<label class="field"><span>Justificatif</span>'
+    + '<input type="file" id="fi" accept="image/*" style="min-height:48px;padding:10px 12px">'
+    + '</label>'
+    + '<p class="muted" style="font-size:12px;margin:0">Touche le champ ci-dessus : ton téléphone propose l\'appareil photo ou la galerie.</p>'
+    + '<div id="apercu">'+(photo ? '<img class="vign" style="width:100%;height:auto;max-height:240px" src="'+photo+'" alt="Justificatif">' : '')+'</div>'
+    + '<div><p class="muted" style="font-size:12px;margin:0">Stockage utilisé : '+poidsLisible(poidsDonnees())+' sur environ 4 Mo.</p>'
+    + '<div class="jauge'+(pct > 85 ? " pleine-alerte" : "")+'"><span style="width:'+pct+'%"></span></div></div>'
+    + '<button class="btn primary wide" id="ok">'+(d ? "Enregistrer" : "Enregistrer la dispense")+'</button>'
+    + (d ? '<button class="btn wide danger" id="del">Supprimer cette dispense</button>' : ''),
+    function(root){
+      var fi = root.querySelector("#fi");
+      fi.onchange = function(ev){
+        var f = ev.target.files && ev.target.files[0];
+        if(!f) return toast("Aucune photo sélectionnée");
+        toast("Compression de la photo…");
+        compresserPhoto(f, function(src){
+          photo = src;
+          root.querySelector("#apercu").innerHTML =
+            '<img class="vign" style="width:100%;height:auto;max-height:240px" src="'+src+'" alt="Justificatif">';
+          toast("Photo prête (" + poidsLisible(src.length) + ")");
+        }, function(msg){ toast(msg); });
+      };
+
+      root.querySelector("#ok").onclick = function(){
+        var d1 = root.querySelector("#d1").value, d2 = root.querySelector("#d2").value;
+        if(!d1) return toast("Indique la date de début");
+        if(!d2) return toast("Indique la date de fin");
+        if(d2 < d1) return toast("La date de fin précède la date de début");
+        if(!S.dispenses) S.dispenses = [];
+        var maj = {debut:d1, fin:d2, origine:root.querySelector("#or").value,
+                   motif:root.querySelector("#mo").value.trim(), photo:photo};
+        var avant;
+        if(d){
+          avant = {debut:d.debut, fin:d.fin, origine:d.origine, motif:d.motif, photo:d.photo};
+          d.debut = maj.debut; d.fin = maj.fin; d.origine = maj.origine;
+          d.motif = maj.motif; d.photo = maj.photo;
+          if(!save()){
+            d.debut = avant.debut; d.fin = avant.fin; d.origine = avant.origine;
+            d.motif = avant.motif; d.photo = avant.photo;
+            return toast("Stockage plein : supprime une ancienne photo d'abord");
+          }
+        } else {
+          var neuve = {id:uid(), eleveId:eid, debut:maj.debut, fin:maj.fin,
+                       origine:maj.origine, motif:maj.motif, photo:maj.photo};
+          S.dispenses.push(neuve);
+          if(!save()){
+            S.dispenses = S.dispenses.filter(function(x){ return x.id !== neuve.id; });
+            save();
+            return toast("Stockage plein : supprime une ancienne photo d'abord");
+          }
+        }
+        fermerSheet(); render(); toast("Dispense enregistrée");
+      };
+
+      var b = root.querySelector("#del");
+      if(b) b.onclick = function(){
+        S.dispenses = (S.dispenses || []).filter(function(x){ return x.id !== id; });
+        save(); fermerSheet(); render(); toast("Dispense supprimée");
+      };
+    });
+}
+
+function ligneDispense(d, avecNom){
+  var e = eleveById(d.eleveId);
+  if(!e) return "";
+  var cl = classeById(e.classeId);
+  var finie = d.fin && d.fin < AUJ();
+  return '<div class="disp-c'+(finie ? " finie" : "")+'"><div class="row">'
+    + (d.photo ? '<button class="vign" data-ph="'+d.id+'" style="border:0;padding:0" aria-label="Voir le justificatif">'
+        + '<img class="vign" src="'+d.photo+'" alt="Justificatif"></button>'
+      : '<span class="vign" style="display:grid;place-items:center;color:var(--ink-3)">—</span>')
+    + '<button class="grow linkish" data-dd="'+d.id+'">'
+    + (avecNom ? '<b>'+esc(e.nom.toUpperCase())+' '+esc(e.prenom)+'</b>' : '')
+    + '<span class="meta num">'+frDate(d.debut)+' → '+frDate(d.fin)+'</span> '
+    + '<span class="badge '+(finie ? "b-quiet" : "b-accent")+'">'
+    + (finie ? "terminée" : "jusqu'au " + frDate(d.fin)) + '</span>'
+    + (avecNom && cl ? ' <span class="badge b-classe"'+styleClasse(cl.nom)+'>'+esc(cl.nom)+'</span>' : '')
+    + '<span class="mot">'+esc(ORIGINES[d.origine] || "Justificatif")
+    + (d.motif ? " — " + esc(d.motif) : "") + '</span>'
+    + '</button></div></div>';
+}
+function brancherDispenses(){
+  each("[data-ph]", function(b){
+    b.onclick = function(){
+      var d = (S.dispenses || []).filter(function(x){ return x.id === b.dataset.ph; })[0];
+      if(d && d.photo) voirPhoto(d.photo);
+    };
+  });
+  each("[data-dd]", function(b){
+    b.onclick = function(){
+      var d = (S.dispenses || []).filter(function(x){ return x.id === b.dataset.dd; })[0];
+      if(d) sheetDispense(d.eleveId, d.id);
+    };
+  });
+}
+
+/* ══════════ Vue : atelier de performance ══════════ */
+function vueAtelier(){
+  var cl = classeById(view.classeId);
+  if(!cl) return go({n:"classes"});
+  var date = view.date || AUJ();
+  var ep = epreuveById(view.epreuveId);
+  var ap = apsaEnCours(cl.id, date, view.slot);
+  var els = elevesDe(cl.id);
+  var sty = styleClasse(cl.nom);
+
+  var h = header(ep.nom, cl.nom + " · " + frLong(date), true, cl.nom);
+
+  h += '<div class="sect"><span class="eyebrow">Épreuve</span><div class="chipbar">'
+    + EPREUVES.map(function(x){
+        return '<button class="chip" data-ep="'+x.id+'" aria-pressed="'+(x.id === ep.id)+'">'
+          + esc(x.nom)+'</button>';
+      }).join("") + '</div></div>';
+
+  h += '<div class="sect"'+sty+'><span class="eyebrow">Trois essais · '
+    + (ep.sens === "min" ? "le plus rapide compte" : "le plus loin compte") + '</span>'
+    + '<div class="stack" style="gap:8px">';
+  if(!els.length) h += '<div class="empty">Aucun élève dans '+esc(cl.nom)+'.</div>';
+  els.forEach(function(e){
+    var p = perfDe(e.id, ep.id);
+    var ess = (p && p.essais) || [null,null,null];
+    var b = meilleurEssai(ess, ep.sens);
+    var dp = dispenseActive(e.id, date);
+    h += '<div class="perf-l" data-ligne="'+e.id+'">'
+      + '<div class="row"><span class="nm grow truncate">'+esc(e.nom.toUpperCase())+' '+esc(e.prenom)
+      + (p && p.date && p.date !== date
+          ? '<br><span class="meta num" style="font-size:12px;color:var(--ink-3);font-weight:400">mesuré le '+frDate(p.date)+'</span>'
+          : '')
+      + '</span>'
+      + (dp ? '<span class="badge b-accent">dispensé</span>' : '')
+      + '</div><div class="essais">';
+    for (var i = 0; i < 3; i++){
+      h += '<input type="text" inputmode="decimal" data-e="'+e.id+'" data-i="'+i+'" '
+        + 'value="'+nombreFr(ess[i])+'" placeholder="'+(i === 0 ? esc(ep.ph) : "—")+'" '
+        + 'aria-label="Essai '+(i+1)+'">';
+    }
+    h += '<span class="best'+(b == null ? " vide" : "")+'" data-best="'+e.id+'">'
+      + (b == null ? "—" : nombreFr(b) + " " + ep.unite) + '</span>'
+      + '</div></div>';
+  });
+  h += '</div></div>';
+
+  /* Classement : lisible d'un coup d'œil pour annoncer les résultats en fin de séance. */
+  var classes = els.map(function(e){
+    var p = perfDe(e.id, ep.id);
+    return {e:e, v:meilleurEssai(p && p.essais, ep.sens)};
+  }).filter(function(x){ return x.v != null; })
+    .sort(function(a,b){ return ep.sens === "min" ? a.v - b.v : b.v - a.v; });
+
+  h += '<div class="sect"'+sty+'><span class="eyebrow">Classement ('+classes.length+')</span>';
+  if(!classes.length){
+    h += '<div class="empty">Saisis les essais : le classement se remplit tout seul.</div></div>';
+  } else {
+    h += '<div class="plist">' + classes.map(function(x, i){
+      return '<div class="prow"><span class="rang'+(i < 3 ? " podium" : "")+'">'+(i+1)+'</span>'
+        + '<span class="grow truncate"><span class="nm">'+esc(x.e.nom.toUpperCase())+' '+esc(x.e.prenom)+'</span></span>'
+        + '<span class="num" style="font-weight:600">'+nombreFr(x.v)+' '+ep.unite+'</span></div>';
+    }).join("") + '</div></div>';
+  }
+
+  app.innerHTML = h;
+  on("#back", function(){ go(view.from || {n:"seance", classeId:cl.id, date:date}); });
+  each("[data-ep]", function(b){
+    b.onclick = function(){
+      go({n:"atelier", classeId:cl.id, date:date, epreuveId:b.dataset.ep, from:view.from});
+    };
+  });
+  /* On n'appelle pas render() à la frappe : le clavier resterait ouvert
+     mais le champ perdrait le focus. On met à jour le meilleur essai à la main. */
+  each("[data-i]", function(inp){
+    inp.onchange = function(){
+      var eid = inp.dataset.e, i = +inp.dataset.i;
+      var v = litNombre(inp.value);
+      inp.value = nombreFr(v);
+      enregistrerEssai(eid, ep, date, ap ? ap.id : null, i, v);
+      var p = perfDe(eid, ep.id);
+      var b = meilleurEssai(p && p.essais, ep.sens);
+      var cell = app.querySelector('[data-best="'+eid+'"]');
+      if(cell){
+        cell.textContent = b == null ? "—" : nombreFr(b) + " " + ep.unite;
+        cell.className = "best" + (b == null ? " vide" : "");
+      }
+    };
+  });
+}
+
+/* ══════════ Vue : dispenses ══════════ */
+function vueDispenses(){
+  var auj = AUJ(), enc = dispensesEnCours(auj), fini = dispensesTerminees(auj);
+  var h = header("Dispenses", enc.length + " en cours", true);
+  h += '<div class="sect"><span class="eyebrow">En cours</span><div class="stack" style="gap:8px">';
+  if(!enc.length) h += '<div class="empty">Aucune dispense en cours.<br>'
+    + 'Ouvre la fiche d\'un élève pour photographier son justificatif.</div>';
+  h += enc.map(function(d){ return ligneDispense(d, true); }).join("") + '</div></div>';
+  if(fini.length){
+    h += '<div class="sect"><span class="eyebrow">Terminées ('+fini.length+')</span>'
+      + '<div class="stack" style="gap:8px">'
+      + fini.slice(0, 40).map(function(d){ return ligneDispense(d, true); }).join("")
+      + '</div><p class="muted" style="font-size:12px;margin:10px 0 0">'
+      + 'Les justificatifs terminés sont conservés. Supprime-les depuis leur fiche si le stockage sature.</p></div>';
+  }
+  app.innerHTML = h;
+  on("#back", function(){ go(view.from || {n:"eleves"}); });
+  brancherDispenses();
+}
+
+function sheetImportEleves(cid){
+  var c = classeById(cid);
+  if(estGroupe(c)) return sheetComposition(cid);
+  ouvrirSheet("Ajouter des élèves — " + esc(c.nom),
+    '<label class="field"><span>Un élève par ligne</span>'
+    + '<textarea id="tx" style="min-height:190px" placeholder="DUPONT Jordan&#10;MARTIN Léa&#10;BEN AMAR Sofia"></textarea></label>'
+    + '<p class="muted" style="font-size:13px;margin:0">Format NOM Prénom. Tu peux coller directement la liste copiée depuis Pronote.</p>'
+    + '<button class="btn primary wide" id="ok">Ajouter à la classe</button>',
+    function(root){
+      root.querySelector("#ok").onclick = function(){
+        var lignes = root.querySelector("#tx").value.split("\n")
+          .map(function(l){ return l.trim(); }).filter(Boolean);
+        if(!lignes.length) return toast("Colle d'abord la liste");
+        lignes.forEach(function(l){
+          var parts = l.replace(/[,;\t]/g," ").replace(/\s+/g," ").split(" ");
+          var nom, prenom;
+          if(parts.length === 1){ nom = parts[0]; prenom = ""; }
+          else {
+            var maj = parts.filter(function(p){ return p === p.toUpperCase() && /[A-ZÀ-Ý]/.test(p); });
+            if(maj.length && maj.length < parts.length){
+              nom = maj.join(" ");
+              prenom = parts.filter(function(p){ return maj.indexOf(p) < 0; }).join(" ");
+            } else {
+              nom = parts.slice(0,-1).join(" ");
+              prenom = parts[parts.length-1];
+            }
+          }
+          S.eleves.push({id:uid(), classeId:cid, nom:nom, prenom:prenom});
+        });
+        save(); fermerSheet(); render();
+        toast(lignes.length + " élève" + (lignes.length>1 ? "s ajoutés" : " ajouté"));
+      };
+    });
+}
+
+/* ══════════ Routeur ══════════ */
+var VUES = {jour:vueJour, seance:vueSeance, cycle:vueCycle, groupes:vueGroupes,
+            classes:vueClasses, classe:vueClasse, rappels:vueRappels,
+            docs:vueDocs, doc:vueDoc,
+            eleves:vueEleves, eleve:vueEleve, dispenses:vueDispenses,
+            atelier:vueAtelier, reglages:vueReglages};
+function render(){
+  renderNav();
+  (VUES[view.n] || vueJour)();
+}
+render();
+</script>
+<script>
+/* Installe le mode hors ligne. Sans lui, l'appli reste une simple page web. */
+if("serviceWorker" in navigator){
+  window.addEventListener("load", function(){
+    navigator.serviceWorker.register("sw.js").catch(function(){});
+  });
+}
+</script>
+</body>
+</html>
