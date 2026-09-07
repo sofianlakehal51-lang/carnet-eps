@@ -2129,6 +2129,9 @@ function vueReglages(){
     + '<p class="muted" style="font-size:13px;margin:0">Les données restent dans ce navigateur, sur cet appareil : elles ne suivent ni un changement de téléphone, ni un changement d\'adresse de l\'appli. Exporte une copie de temps en temps, et avant tout déménagement.</p>'
     + '<button class="btn wide" id="exp">Exporter mes données</button>'
     + '<button class="btn wide" id="imp">Importer une sauvegarde</button>'
+    + '<p class="muted" style="font-size:13px;margin:6px 0 0">Si le téléchargement ne fonctionne pas sur cet appareil, passe par le texte : ça marche partout.</p>'
+    + '<button class="btn wide" id="exptxt">Afficher la sauvegarde en texte</button>'
+    + '<button class="btn wide" id="imptxt">Coller une sauvegarde</button>'
     + '<input type="file" id="file" accept="application/json,.json" hidden>'
     + '<button class="btn wide danger" id="raz">Tout effacer</button></div></div>'
 
@@ -2158,6 +2161,8 @@ function vueReglages(){
   });
   on("#exp", exporter);
   on("#imp", function(){ app.querySelector("#file").click(); });
+  on("#exptxt", sheetTexteSauvegarde);
+  on("#imptxt", sheetCollerSauvegarde);
   app.querySelector("#file").onchange = function(ev){
     var f = ev.target.files[0];
     /* On vide le champ : rechoisir le même fichier doit redéclencher l'import. */
@@ -2467,7 +2472,13 @@ function importerSauvegarde(fichier){
   r.onload = function(){
     var res = verifierSauvegarde(r.result);
     if(typeof res === "string") return toast(res);
+    confirmerImport(res);
+  };
+  r.readAsText(fichier);
+}
 
+function confirmerImport(res){
+  {
     var resume = "";
     try {
       var etat = JSON.parse(res.donnees[KEY]);
@@ -2500,8 +2511,62 @@ function importerSauvegarde(fichier){
           }
         };
       });
-  };
-  r.readAsText(fichier);
+  }
+}
+
+/* ── Transfert par texte ──
+   Sur certaines tablettes, le téléchargement d'un fichier est bloqué : la
+   sauvegarde ne sort alors que par copier-coller. Ces deux fonctions sont la
+   voie de secours, et souvent la seule qui marche. */
+function texteSauvegarde(){
+  return JSON.stringify(collecterSauvegarde(), null, 2);
+}
+
+function sheetTexteSauvegarde(){
+  var paquet = collecterSauvegarde();
+  if(!paquet.nbCles) return toast("Rien à sauvegarder pour l'instant");
+  var data = JSON.stringify(paquet, null, 2);
+  ouvrirSheet("Sauvegarde en texte",
+    '<p class="muted" style="margin:0;font-size:13px">Copie tout ce cadre, puis colle-le dans l\'autre appli : Réglages → Coller une sauvegarde. Aucun fichier n\'est nécessaire.</p>'
+    + '<textarea id="tx" readonly style="min-height:190px;font-size:11px;font-family:monospace">'+esc(data)+'</textarea>'
+    + '<button class="btn primary wide" id="copier">Tout copier</button>'
+    + '<p class="muted" style="margin:0;font-size:12px">Si le bouton ne fait rien : appui long dans le cadre, puis « Tout sélectionner » et « Copier ».</p>',
+    function(root){
+      var t = root.querySelector("#tx");
+      root.querySelector("#copier").onclick = function(){
+        try { t.focus(); t.setSelectionRange(0, t.value.length); } catch(e){}
+        var fait = false;
+        try { fait = document.execCommand("copy"); } catch(e){ fait = false; }
+        if(fait) return toast("Sauvegarde copiée (" + Math.round(data.length/1024) + " Ko)");
+        if(navigator.clipboard && navigator.clipboard.writeText){
+          navigator.clipboard.writeText(data).then(function(){
+            toast("Sauvegarde copiée (" + Math.round(data.length/1024) + " Ko)");
+          }).catch(function(){
+            toast("Copie refusée — appui long puis « Tout sélectionner »");
+          });
+          return;
+        }
+        toast("Copie refusée — appui long puis « Tout sélectionner »");
+      };
+    });
+}
+
+function sheetCollerSauvegarde(){
+  ouvrirSheet("Coller une sauvegarde",
+    '<p class="muted" style="margin:0;font-size:13px">Colle ici le texte copié depuis l\'autre appli. Il commence par une accolade et contient « carnet-eps-sauvegarde ».</p>'
+    + '<label class="field"><span>Texte de la sauvegarde</span>'
+    + '<textarea id="tx" style="min-height:170px;font-size:12px" placeholder="{ &quot;format&quot;: &quot;carnet-eps-sauvegarde&quot;, …"></textarea></label>'
+    + '<button class="btn primary wide" id="ok">Vérifier et importer</button>',
+    function(root){
+      root.querySelector("#ok").onclick = function(){
+        var txt = root.querySelector("#tx").value.trim();
+        if(!txt) return toast("Colle d'abord le texte");
+        var res = verifierSauvegarde(txt);
+        if(typeof res === "string") return toast(res);
+        fermerSheet();
+        confirmerImport(res);
+      };
+    });
 }
 
 /* ══════════ Feuilles de saisie ══════════ */
