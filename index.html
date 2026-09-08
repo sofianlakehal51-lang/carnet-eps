@@ -1131,9 +1131,14 @@ function vueSeance(){
       + '<span class="grow"><b class="fiche-titre">'+esc(f && f.titre ? f.titre : "Séance à préparer")+'</b>'
       + '<span class="muted" style="display:block;font-size:12px">'+esc(ap.nom)+'</span></span></div>';
     if(f && f.objectif) h += '<p class="fiche-obj"><span class="eyebrow">Objectif</span>'+esc(f.objectif)+'</p>';
-    if(f && f.materiel) h += materielHTML(f.materiel);
+    /* On analyse le déroulé d'abord : le bandeau de matériel n'apparaît que sur
+       les séances conformes, pour que les anciennes gardent leur aspect. */
+    if(f && f.deroule) etapes = analyserDeroule(f.deroule);
+    if(f && f.materiel){
+      h += etapes ? materielHTML(f.materiel)
+        : '<p class="fiche-mat"><span class="eyebrow">Matériel</span>'+esc(f.materiel)+'</p>';
+    }
     if(f && f.deroule){
-      etapes = analyserDeroule(f.deroule);
       if(etapes){
         coches = lireCleAnnexe(KEY_ETAPES, VERSION_ETAPES).seances[cleSeance(ap, sq.num)] || {};
         h += '<div class="fiche-der"><span class="eyebrow">Déroulé · '+etapes.length+' étapes</span>'
