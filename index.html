@@ -443,6 +443,11 @@ nav.tabbar svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width
 "use strict";
 
 /* ══════════ Modèle ══════════ */
+/* Numéro de version affiché dans les Réglages. À garder identique à VERSION
+   dans sw.js : c'est le seul moyen de savoir ce que la tablette exécute
+   vraiment quand une mise à jour semble ne pas être arrivée. */
+var BUILD = "v7";
+
 var KEY = "carnet-eps-v1";
 function uid(){ return Math.random().toString(36).slice(2,10); }
 
@@ -2712,9 +2717,32 @@ function vueReglages(){
     + '<div class="sect"><span class="eyebrow">Essayer l\'appli</span><div class="stack" style="gap:10px">'
     + '<p class="muted" style="font-size:13px;margin:0">Remplace tes élèves par des élèves fictifs avec des oublis, des notes et un cycle de natation rédigé, pour voir comment tout fonctionne.</p>'
     + '<button class="btn wide" id="demo">Charger des élèves de démonstration</button></div></div>'
+    + '<div class="sect"><span class="eyebrow">Version</span><div class="card" style="padding:14px">'
+    + '<p class="muted num" style="font-size:15px;margin:0;color:var(--ink)">Carnet EPS <b>'+BUILD+'</b></p>'
+    + '<p class="muted" style="font-size:13px;margin:8px 0 12px">Si une nouveauté n\'apparaît pas, c\'est que la tablette garde l\'ancienne version en mémoire. Ce bouton la remplace. Tes données n\'y touchent pas.</p>'
+    + '<button class="btn wide" id="maj">Chercher une mise à jour</button></div></div>'
     + '<div class="sect"><p class="muted" style="font-size:12px;margin:0">Sur le téléphone : ouvre cette page dans le navigateur, puis « Ajouter à l\'écran d\'accueil ». Elle se lance ensuite comme une appli.</p></div>';
 
   app.innerHTML = h;
+
+  /* Mise à jour forcée : on vide les caches de la coquille (jamais le
+     localStorage, qui n'y est pas) et on recharge depuis le réseau. */
+  on("#maj", function(){
+    toast("Recherche d'une mise à jour…");
+    var etapes = [];
+    if(navigator.serviceWorker && navigator.serviceWorker.getRegistrations){
+      etapes.push(navigator.serviceWorker.getRegistrations().then(function(rs){
+        return Promise.all(rs.map(function(r){ return r.update(); }));
+      }));
+    }
+    if(window.caches && caches.keys){
+      etapes.push(caches.keys().then(function(ns){
+        return Promise.all(ns.map(function(n){ return caches.delete(n); }));
+      }));
+    }
+    Promise.all(etapes)["catch"](function(){})
+      .then(function(){ location.reload(); });
+  });
 
   var si = app.querySelector("#seuil");
   si.onchange = function(){
