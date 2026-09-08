@@ -135,6 +135,13 @@ label.field > span{display:block;font-size:11px;font-weight:600;color:var(--ink-
 .fiche .eyebrow{display:block;margin-bottom:3px}
 .fiche-mat{color:var(--ink-2)}
 .fiche-der{margin-top:14px}
+/* Feuilletage du cycle depuis le cours du jour : deux flèches de 44 px, et un
+   liseré atténué quand on regarde une séance qui n'est pas celle d'aujourd'hui. */
+.fl{flex:none;width:44px;height:44px;border:1px solid var(--line);border-radius:12px;
+    background:var(--surface);color:var(--c);font-size:24px;line-height:1;cursor:pointer}
+.fl[disabled]{opacity:.3;cursor:default}
+.fiche.passee{border-left-color:var(--line)}
+.fiche-ici{margin-top:10px !important}
 .der-l{display:block;font-size:14px;line-height:1.45;padding:7px 0 7px 16px;position:relative;
   border-top:1px solid var(--line)}
 .der-l:first-of-type{border-top:0}
@@ -1151,13 +1158,25 @@ function vueSeance(){
     + '<span class="grow"></span><button class="btn sm" id="addapsa">APSA…</button></div>';
 
   var sq = ap ? seanceDuJour(cl.id, ap, date) : null;
+  /* On peut feuilleter les séances déjà faites sans quitter le cours du jour :
+     seule la carte de fiche change, l'appel reste celui d'aujourd'hui. */
+  var vu = sq ? Math.min(Math.max(view.nseance || sq.num, 1), sq.total) : null;
+  var sv = sq ? (vu === sq.num ? sq : {num:vu, total:sq.total, fiche:ficheSeance(ap, vu)}) : null;
+  var dateVue = sv ? (datesSeances(cl.id, ap)[vu - 1] || {}).date : null;
   var etapes = null, coches = {};
   if(sq){
-    var f = sq.fiche;
-    h += '<div class="fiche" style="margin-top:12px">'
-      + '<div class="row"><span class="fiche-num">Séance <b>'+sq.num+'</b><span>/ '+sq.total+'</span></span>'
+    var f = sv.fiche;
+    h += '<div class="fiche'+(vu === sq.num ? '' : ' passee')+'" style="margin-top:12px">'
+      + '<div class="row">'
+      + '<button class="fl" id="prevs"'+(vu <= 1 ? ' disabled' : '')+' aria-label="Séance précédente">‹</button>'
+      + '<span class="fiche-num">Séance <b>'+sv.num+'</b><span>/ '+sv.total+'</span></span>'
+      + '<button class="fl" id="nexts"'+(vu >= sv.total ? ' disabled' : '')+' aria-label="Séance suivante">›</button>'
       + '<span class="grow"><b class="fiche-titre">'+esc(f && f.titre ? f.titre : "Séance à préparer")+'</b>'
-      + '<span class="muted" style="display:block;font-size:12px">'+esc(ap.nom)+'</span></span></div>';
+      + '<span class="muted" style="display:block;font-size:12px">'+esc(ap.nom)
+      + (vu === sq.num ? '' : ' · ' + frDate(dateVue)) + '</span></span></div>'
+      + (vu === sq.num
+          ? '<p class="fiche-ici"><span class="badge b-classe">Mon cours d\'aujourd\'hui</span></p>'
+          : '<button class="btn sm wide" id="retourauj" style="margin:8px 0 2px">Revenir à mon cours (séance '+sq.num+')</button>');
     if(f && f.objectif) h += '<p class="fiche-obj"><span class="eyebrow">Objectif</span>'+esc(f.objectif)+'</p>';
     /* On analyse le déroulé d'abord : le bandeau de matériel n'apparaît que sur
        les séances conformes, pour que les anciennes gardent leur aspect. */
@@ -1168,7 +1187,7 @@ function vueSeance(){
     }
     if(f && f.deroule){
       if(etapes){
-        coches = lireCleAnnexe(KEY_ETAPES, VERSION_ETAPES).seances[cleSeance(ap, sq.num)] || {};
+        coches = lireCleAnnexe(KEY_ETAPES, VERSION_ETAPES).seances[cleSeance(ap, sv.num)] || {};
         h += '<div class="fiche-der"><span class="eyebrow">Déroulé · '+etapes.length+' étapes</span>'
           + etapesHTML(etapes, coches) + '</div>'
           + '<button class="btn sm wide" id="decocher" style="margin-top:12px">Tout décocher</button>';
@@ -1195,7 +1214,10 @@ function vueSeance(){
     on("#addel", function(){ sheetImportEleves(cl.id); });
     on("#addapsa", function(){ sheetAPSA(cl.id); });
     on("#cycle", function(){ go({n:"cycle", classeId:cl.id, apsaId:ap.id, from:view}); });
-    on("#editfiche", function(){ sheetFiche(ap, sq.num); });
+    on("#editfiche", function(){ sheetFiche(ap, sv.num, dateVue, cl.id); });
+  on("#prevs", function(){ view.nseance = vu - 1; render(); });
+  on("#nexts", function(){ view.nseance = vu + 1; render(); });
+  on("#retourauj", function(){ view.nseance = null; render(); });
     return;
   }
 
@@ -1267,7 +1289,10 @@ function vueSeance(){
   on("#back", function(){ go({n:"jour", date:date}); });
   on("#addapsa", function(){ sheetAPSA(cl.id); });
   on("#cycle", function(){ go({n:"cycle", classeId:cl.id, apsaId:ap.id, from:view}); });
-  on("#editfiche", function(){ sheetFiche(ap, sq.num); });
+  on("#editfiche", function(){ sheetFiche(ap, sv.num, dateVue, cl.id); });
+  on("#prevs", function(){ view.nseance = vu - 1; render(); });
+  on("#nexts", function(){ view.nseance = vu + 1; render(); });
+  on("#retourauj", function(){ view.nseance = null; render(); });
   on("#niveaux", function(){ go({n:"groupes", classeId:cl.id, apsaId:ap ? ap.id : null, from:view}); });
   on("#atelier", function(){
     go({n:"atelier", classeId:cl.id, date:date, epreuveId:"vortex", from:view});
@@ -1285,7 +1310,7 @@ function vueSeance(){
   each("[data-fiche]", function(b){ b.onclick = function(){ go({n:"eleve", id:b.dataset.fiche, from:view}); }; });
   brancherDispenses();
   on("#tirage", function(){ sheetTirage(cl, ap, sq, els, date); });
-  brancherSeance(ap, sq, etapes);
+  brancherSeance(ap, sv, etapes);
 }
 
 /* Interactions de la fiche : dépliages, cases « fait », minuteurs.
