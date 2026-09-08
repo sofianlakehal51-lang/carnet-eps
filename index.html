@@ -205,6 +205,34 @@ label.field > span{display:block;font-size:11px;font-weight:600;color:var(--ink-
   @keyframes sonne{50%{background:var(--surface-2);color:var(--alert)}}
 }
 
+.chrono-plein{flex:none;width:44px;min-width:44px;min-height:44px;border-radius:10px;
+  border:1px solid var(--line-strong);background:var(--surface);color:var(--c);
+  font-size:19px;line-height:1;display:grid;place-items:center}
+
+/* Minuteur en grand : simple couche fixe par-dessus l'appli, pas de
+   requestFullscreen, qui casse au retour sur tablette. */
+.plein{position:fixed;inset:0;z-index:80;background:var(--paper);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:14px;padding:calc(18px + env(safe-area-inset-top)) 16px calc(18px + env(safe-area-inset-bottom))}
+.plein-titre{font-family:Archivo;font-weight:800;font-size:clamp(18px,5.5vw,30px);
+  line-height:1.15;color:var(--c);text-transform:uppercase;text-align:center;
+  max-width:92%;text-wrap:balance}
+.plein-t{font-family:"IBM Plex Mono",ui-monospace,monospace;font-weight:600;
+  font-variant-numeric:tabular-nums;line-height:1;letter-spacing:-.02em;
+  font-size:min(30vw,52vh);color:var(--ink)}
+.plein-t.marche{color:var(--c)}
+.plein-t.fini{color:var(--alert)}
+@media (prefers-reduced-motion:no-preference){
+  .plein-t.fini{animation:sonne .8s steps(1) infinite}
+}
+.plein-btns{display:flex;gap:10px;width:100%;max-width:520px}
+.plein-btns button{flex:1;min-height:64px;border-radius:14px;border:1px solid var(--line-strong);
+  background:var(--surface);color:var(--ink);font-size:18px;font-weight:700}
+.plein-btns button.primaire{background:var(--c);border-color:var(--c);color:#fff}
+.plein-x{position:absolute;top:calc(10px + env(safe-area-inset-top));right:12px;
+  width:52px;height:52px;border-radius:14px;border:1px solid var(--line-strong);
+  background:var(--surface);color:var(--ink);font-size:22px;line-height:1}
+
 .tirage-nom{margin:6px 0;padding:26px 12px;border-radius:var(--r);background:var(--cs);
   color:var(--c);text-align:center;font-family:Archivo;font-weight:800;line-height:1.05;
   font-size:clamp(30px,11vw,58px);word-break:break-word;min-height:118px;
@@ -1316,6 +1344,12 @@ function brancherSeance(ap, sq, etapes){
       else razMinuteur(cle, i, mn);
     };
   });
+  each("[data-plein]", function(b){
+    b.onclick = function(){
+      var i = parseInt(b.dataset.plein, 10);
+      ouvrirPlein(cle, i, etapes[i].num + " · " + etapes[i].titre, etapes[i].minutes);
+    };
+  });
 
   /* Retour sur la séance : on remet le minuteur là où il en est. */
   if(minuteur && minuteur.cle === cle && minuteur.i < etapes.length){
@@ -1467,6 +1501,8 @@ function etapesHTML(etapes, coches){
       + '<button data-chr="marche" data-i="' + i + '">Démarrer</button>'
       + '<button data-chr="pause" data-i="' + i + '">Pause</button>'
       + '<button data-chr="raz" data-i="' + i + '">Remise à zéro</button>'
+      + '<button class="chrono-plein" data-plein="' + i + '" '
+      + 'aria-label="Afficher le minuteur en grand">⤢</button>'
       + '</div></div></div>';
     return h;
   }).join('');
@@ -1487,12 +1523,14 @@ function restantMinuteur(){
   return minuteur.marche ? Math.max(0, minuteur.fin - Date.now()) : minuteur.restant;
 }
 function peindreMinuteur(){
-  if(!minuteur) return;
+  if(!minuteur){ peindrePlein(); return; }
   var el = document.getElementById("chrono-" + minuteur.i);
-  if(!el) return;
-  var r = restantMinuteur();
-  el.textContent = mmss(r);
-  el.className = "chrono-t" + (r <= 0 ? " fini" : (minuteur.marche ? " marche" : ""));
+  if(el){
+    var r = restantMinuteur();
+    el.textContent = mmss(r);
+    el.className = "chrono-t" + (r <= 0 ? " fini" : (minuteur.marche ? " marche" : ""));
+  }
+  peindrePlein();
 }
 function ticMinuteur(){
   if(!minuteur) return arreterTic();
@@ -1536,6 +1574,77 @@ function razMinuteur(cle, i, minutes){
   if(minuteur && minuteur.cle === cle && minuteur.i === i){ arreterTic(); minuteur = null; }
   var el = document.getElementById("chrono-" + i);
   if(el){ el.textContent = mmss(minutes * 60000); el.className = "chrono-t"; }
+  peindrePlein();
+}
+
+/* ── Minuteur en grand ──
+   Une couche fixe par-dessus l'appli, pilotée par le MÊME minuteur : elle ne
+   compte rien de son côté, elle affiche l'état de la variable `minuteur`. */
+var plein = null;
+var veille = null;
+
+function prendreVeille(){
+  /* Empêche l'écran de s'éteindre pendant l'affichage. Absente sur certains
+     navigateurs : dans ce cas on ne fait rien et on ne dit rien. */
+  try {
+    if(navigator.wakeLock && navigator.wakeLock.request){
+      navigator.wakeLock.request("screen").then(function(s){ veille = s; },
+        function(){ veille = null; });
+    }
+  } catch(e){ veille = null; }
+}
+function rendreVeille(){
+  try { if(veille && veille.release) veille.release(); } catch(e){}
+  veille = null;
+}
+function pleinEstLeSien(){
+  return !!(plein && minuteur && minuteur.cle === plein.cle && minuteur.i === plein.i);
+}
+function peindrePlein(){
+  if(!plein) return;
+  var t = document.getElementById("plein-t");
+  if(!t) return;
+  var sien = pleinEstLeSien();
+  var r = sien ? restantMinuteur() : plein.minutes * 60000;
+  var marche = sien && minuteur.marche;
+  t.textContent = mmss(r);
+  t.className = "plein-t" + (r <= 0 ? " fini" : (marche ? " marche" : ""));
+  var b = document.getElementById("plein-pause");
+  if(b){
+    b.textContent = marche ? "Pause" : "Reprendre";
+    b.className = marche ? "" : "primaire";
+  }
+}
+function fermerPlein(){
+  var el = document.getElementById("plein");
+  if(el) el.parentNode.removeChild(el);
+  plein = null;
+  rendreVeille();
+}
+function ouvrirPlein(cle, i, titre, minutes){
+  fermerPlein();
+  plein = {cle:cle, i:i, titre:titre, minutes:minutes};
+  var d = document.createElement("div");
+  d.className = "plein";
+  d.id = "plein";
+  d.innerHTML = '<button class="plein-x" id="plein-x" aria-label="Revenir à la séance">✕</button>'
+    + '<div class="plein-titre">' + esc(titre) + '</div>'
+    + '<div class="plein-t" id="plein-t">' + mmss(minutes * 60000) + '</div>'
+    + '<div class="plein-btns">'
+    + '<button id="plein-pause">Pause</button>'
+    + '<button id="plein-raz">Remise à zéro</button></div>';
+  document.body.appendChild(d);
+  d.querySelector("#plein-x").onclick = fermerPlein;
+  d.querySelector("#plein-pause").onclick = function(){
+    if(pleinEstLeSien() && minuteur.marche) pauserMinuteur();
+    else lancerMinuteur(plein.cle, plein.i, plein.minutes);
+    peindrePlein();
+  };
+  d.querySelector("#plein-raz").onclick = function(){
+    razMinuteur(plein.cle, plein.i, plein.minutes);
+  };
+  prendreVeille();
+  peindrePlein();
 }
 
 /* ── Tirage au sort ──
