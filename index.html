@@ -486,6 +486,17 @@ nav.tabbar svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width
 .nbgrille{display:grid;grid-template-columns:repeat(5,1fr);gap:8px}
 .nbgrille .nb{min-height:60px;font-size:22px;font-family:"IBM Plex Mono",monospace;padding:0}
 .nbgrille .nb.sel{border-color:var(--accent);border-width:2px}
+/* Le minuteur suit partout : pastille fixe en haut à droite, cible de 48 px. */
+.pchrono{position:fixed;top:10px;right:10px;z-index:30;min-width:78px;height:48px;padding:0 12px;
+  border-radius:24px;border:2px solid var(--line);background:var(--surface);color:var(--ink);
+  font-family:"IBM Plex Mono",monospace;font-size:19px;cursor:pointer;
+  box-shadow:0 3px 10px rgba(0,0,0,.16)}
+.pchrono.marche{border-color:var(--accent);color:var(--accent)}
+.pchrono.pause{opacity:.85}
+.pchrono.fini{border-color:#C42C63;color:#fff;background:#C42C63;animation:pclign 1s steps(2,end) infinite}
+@keyframes pclign{50%{opacity:.45}}
+/* Tant que la pastille est là, le titre lui laisse la place. */
+body.avec-chrono .top h1{padding-right:92px}
 .roue-res{font-family:Archivo;font-size:clamp(30px,10vw,68px);line-height:1.1;text-align:center;
   min-height:1.15em;display:flex;align-items:center;justify-content:center;gap:14px}
 .roue-btn{min-height:66px;font-size:21px;width:min(92vw,430px)}
@@ -502,7 +513,7 @@ nav.tabbar svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width
 /* Numéro de version affiché dans les Réglages. À garder identique à VERSION
    dans sw.js : c'est le seul moyen de savoir ce que la tablette exécute
    vraiment quand une mise à jour semble ne pas être arrivée. */
-var BUILD = "v9";
+var BUILD = "v10";
 
 var KEY = "carnet-eps-v1";
 function uid(){ return Math.random().toString(36).slice(2,10); }
@@ -1426,7 +1437,7 @@ function brancherSeance(ap, sq, etapes){
     b.onclick = function(){
       var i = parseInt(b.dataset.i, 10);
       var mn = etapes[i].minutes;
-      if(b.dataset.chr === "marche") lancerMinuteur(cle, i, mn);
+      if(b.dataset.chr === "marche") lancerMinuteur(cle, i, mn, etapes[i].num + " · " + etapes[i].titre);
       else if(b.dataset.chr === "pause") pauserMinuteur();
       else razMinuteur(cle, i, mn);
     };
@@ -1600,11 +1611,39 @@ function etapesHTML(etapes, coches){
 }
 
 /* ── Minuteur ──
-   L'échéance est un horodatage absolu : la mise en veille de la tablette ne
-   fausse rien. Il vit dans une variable de module, donc il survit à un
-   changement d'écran, mais pas à un rechargement de la page. */
+   L'échéance est un horodatage absolu : ni la mise en veille de la tablette ni
+   la fermeture de l'appli ne faussent le compte. L'état est recopié dans le
+   stockage à chaque changement, si bien qu'un minuteur lancé avant de quitter
+   l'appli est retrouvé à la bonne seconde au retour.
+
+   Cette clé n'est PAS dans les sauvegardes : un chrono en cours est de l'état
+   de l'instant, pas une donnée. La restaurer sur un autre appareil n'aurait
+   aucun sens. */
+var KEY_MINUTEUR = "carnet-eps-minuteur-v1";
 var minuteur = null;
 var minuteurTic = null;
+
+function ecrireMinuteur(){
+  try {
+    if(minuteur) localStorage.setItem(KEY_MINUTEUR, JSON.stringify(minuteur));
+    else localStorage.removeItem(KEY_MINUTEUR);
+  } catch(e){}
+}
+function lireMinuteur(){
+  var o = null;
+  try { o = JSON.parse(localStorage.getItem(KEY_MINUTEUR)); } catch(e){ o = null; }
+  if(!o || typeof o !== "object" || typeof o.minutes !== "number") return;
+  minuteur = o;
+  /* Le temps a continué de courir pendant l'absence : si l'échéance est
+     passée, le minuteur est simplement terminé. */
+  if(minuteur.marche && minuteur.fin - Date.now() <= 0){
+    minuteur.marche = false;
+    minuteur.restant = 0;
+  } else if(minuteur.marche){
+    arreterTic();
+    minuteurTic = setInterval(ticMinuteur, 250);
+  }
+}
 
 function arreterTic(){
   if(minuteurTic){ clearInterval(minuteurTic); minuteurTic = null; }
@@ -1614,7 +1653,7 @@ function restantMinuteur(){
   return minuteur.marche ? Math.max(0, minuteur.fin - Date.now()) : minuteur.restant;
 }
 function peindreMinuteur(){
-  if(!minuteur){ peindrePlein(); return; }
+  if(!minuteur){ peindrePlein(); peindrePastille(); return; }
   var el = document.getElementById("chrono-" + minuteur.i);
   if(el){
     var r = restantMinuteur();
@@ -1622,18 +1661,48 @@ function peindreMinuteur(){
     el.className = "chrono-t" + (r <= 0 ? " fini" : (minuteur.marche ? " marche" : ""));
   }
   peindrePlein();
+  peindrePastille();
+}
+
+/* ── Pastille flottante ──
+   Dès qu'un minuteur tourne, il reste visible en haut à droite, quel que soit
+   l'écran. Une touche rouvre le grand affichage. Inutile de la montrer quand
+   ce grand affichage est déjà ouvert. */
+function peindrePastille(){
+  var el = document.getElementById("pastille-chrono");
+  if(!minuteur || plein){
+    if(el) el.parentNode.removeChild(el);
+    document.body.classList.remove("avec-chrono");
+    return;
+  }
+  document.body.classList.add("avec-chrono");
+  var r = restantMinuteur();
+  if(!el){
+    el = document.createElement("button");
+    el.id = "pastille-chrono";
+    el.className = "pchrono";
+    el.setAttribute("aria-label", "Revenir au minuteur");
+    el.onclick = function(){
+      if(!minuteur) return;
+      ouvrirPlein(minuteur.cle, minuteur.i, minuteur.titre || "Minuteur", minuteur.minutes);
+    };
+    document.body.appendChild(el);
+  }
+  el.textContent = mmss(r);
+  el.className = "pchrono" + (r <= 0 ? " fini" : (minuteur.marche ? " marche" : " pause"));
 }
 function ticMinuteur(){
   if(!minuteur) return arreterTic();
   if(minuteur.marche && minuteur.fin - Date.now() <= 0){
     minuteur.marche = false; minuteur.restant = 0;
+    ecrireMinuteur();
     peindreMinuteur();
     arreterTic();
     return;
   }
   peindreMinuteur();
 }
-function lancerMinuteur(cle, i, minutes){
+function lancerMinuteur(cle, i, minutes, titre){
   /* Un seul minuteur à la fois : démarrer ailleurs remplace le précédent,
      et remet son affichage à sa durée de départ pour ne pas laisser croire
      que deux étapes tournent en même temps. */
@@ -1645,13 +1714,16 @@ function lancerMinuteur(cle, i, minutes){
         ancien.className = "chrono-t";
       }
     }
-    minuteur = {cle:cle, i:i, minutes:minutes, restant:minutes * 60000, marche:false, fin:0};
+    minuteur = {cle:cle, i:i, minutes:minutes, titre:titre || "",
+                restant:minutes * 60000, marche:false, fin:0};
   }
   if(restantMinuteur() <= 0) minuteur.restant = minutes * 60000;
+  if(titre) minuteur.titre = titre;
   minuteur.fin = Date.now() + minuteur.restant;
   minuteur.marche = true;
   arreterTic();
   minuteurTic = setInterval(ticMinuteur, 250);
+  ecrireMinuteur();
   peindreMinuteur();
 }
 function pauserMinuteur(){
@@ -1659,13 +1731,15 @@ function pauserMinuteur(){
   minuteur.restant = restantMinuteur();
   minuteur.marche = false;
   arreterTic();
+  ecrireMinuteur();
   peindreMinuteur();
 }
 function razMinuteur(cle, i, minutes){
-  if(minuteur && minuteur.cle === cle && minuteur.i === i){ arreterTic(); minuteur = null; }
+  if(minuteur && minuteur.cle === cle && minuteur.i === i){ arreterTic(); minuteur = null; ecrireMinuteur(); }
   var el = document.getElementById("chrono-" + i);
   if(el){ el.textContent = mmss(minutes * 60000); el.className = "chrono-t"; }
   peindrePlein();
+  peindrePastille();
 }
 
 /* ── Minuteur en grand ──
@@ -1711,6 +1785,7 @@ function fermerPlein(){
   if(el) el.parentNode.removeChild(el);
   plein = null;
   rendreVeille();
+  peindrePastille();
 }
 function ouvrirPlein(cle, i, titre, minutes){
   fermerPlein();
@@ -1736,6 +1811,7 @@ function ouvrirPlein(cle, i, titre, minutes){
   };
   prendreVeille();
   peindrePlein();
+  peindrePastille();
 }
 
 /* ── Tirage au sort ──
@@ -4359,7 +4435,8 @@ function vueTournoi(){
   on("#chrono", function(){
     ouvrirPlein("unss:" + t.id, 0, "Match " + courant.ordre + " · "
       + nomEq(t, courant.a) + " – " + nomEq(t, courant.b), t.config.duree);
-    lancerMinuteur("unss:" + t.id, 0, t.config.duree);
+    lancerMinuteur("unss:" + t.id, 0, t.config.duree,
+      "Match " + courant.ordre + " · " + nomEq(t, courant.a) + " – " + nomEq(t, courant.b));
     peindrePlein();
   });
   on("#etape", function(){
@@ -4544,7 +4621,10 @@ var VUES = {jour:vueJour, seance:vueSeance, cycle:vueCycle, groupes:vueGroupes,
 function render(){
   renderNav();
   (VUES[view.n] || vueJour)();
+  peindrePastille();
 }
+/* Un minuteur lancé avant de quitter l appli est repris ici, à la bonne seconde. */
+lireMinuteur();
 render();
 </script>
 <script>
