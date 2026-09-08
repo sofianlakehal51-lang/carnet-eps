@@ -497,6 +497,33 @@ nav.tabbar svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width
 @keyframes pclign{50%{opacity:.45}}
 /* Tant que la pastille est là, le titre lui laisse la place. */
 body.avec-chrono .top h1{padding-right:92px}
+/* Tableau de classement au format championnat : bandeau vert, lignes alternées,
+   rang en pastille, points détachés. */
+/* overflow-x plutôt que hidden : sur un écran très étroit le tableau défile
+   au lieu de perdre silencieusement ses colonnes de droite. */
+.ftwrap{border:1px solid var(--line);border-radius:12px;overflow-x:auto}
+.ftab{width:100%;border-collapse:collapse;font-size:13px}
+.ftab thead th{background:#08532A;color:#fff;font-size:10px;text-transform:uppercase;
+  letter-spacing:.06em;padding:10px 3px;font-weight:700;text-align:center}
+.ftab thead th.g{text-align:left;padding-left:10px}
+.ftab td{padding:9px 3px;border-top:1px solid var(--line);text-align:center;
+  font-family:"IBM Plex Mono",monospace}
+.ftab td.g{text-align:left;font-family:inherit;padding-left:10px}
+/* --surface vaut le même blanc que --paper : l alternance a besoin de sa
+   propre teinte, assez légère pour rester sobre. */
+.ftab tbody tr:nth-child(even){background:#F4F7F5}
+.ftab .rang{display:inline-flex;width:23px;height:23px;border-radius:7px;background:var(--line);
+  color:var(--ink);align-items:center;justify-content:center;font-size:12px;font-weight:700}
+.ftab tr.q .rang{background:#0E7A3C;color:#fff}
+.ftab tr.q td:first-child{box-shadow:inset 3px 0 0 #0E7A3C}
+.ftab .pts{font-size:17px;font-weight:700}
+.ftab .eq{display:flex;align-items:center;gap:8px}
+.ftab .dif.pos{color:#0E7A3C}
+.ftab .dif.neg{color:#C42C63}
+/* Score des matchs : pastille sombre, comme sur un panneau d affichage. */
+.msc{background:#08532A;color:#fff;border-radius:8px;padding:3px 8px}
+.mrow.finie .msc{background:var(--ink-2)}
+.mrow:not(.finie) .msc{background:transparent;color:var(--ink-2)}
 .roue-res{font-family:Archivo;font-size:clamp(30px,10vw,68px);line-height:1.1;text-align:center;
   min-height:1.15em;display:flex;align-items:center;justify-content:center;gap:14px}
 .roue-btn{min-height:66px;font-size:21px;width:min(92vw,430px)}
@@ -513,7 +540,7 @@ body.avec-chrono .top h1{padding-right:92px}
 /* Numéro de version affiché dans les Réglages. À garder identique à VERSION
    dans sw.js : c'est le seul moyen de savoir ce que la tablette exécute
    vraiment quand une mise à jour semble ne pas être arrivée. */
-var BUILD = "v10";
+var BUILD = "v11";
 
 var KEY = "carnet-eps-v1";
 function uid(){ return Math.random().toString(36).slice(2,10); }
@@ -4236,13 +4263,18 @@ function vueUnss(){
     u.tournois.forEach(function(t){
       var joues = t.matchs.filter(matchJoue).length;
       var ch = championDe(t);
-      h += '<button class="prow" data-t="'+t.id+'">'
+      /* La croix est un bouton à part, hors de celui qui ouvre le tournoi :
+         on ne supprime jamais par mégarde en voulant simplement l'ouvrir. */
+      h += '<div class="prow" style="padding-right:6px">'
+        + '<button class="grow row" data-t="'+t.id+'" style="gap:10px;text-align:left;background:none;border:0;padding:0">'
         + '<span class="avatar" style="background:#0E7A3C;color:#fff">⚽</span>'
         + '<span class="grow truncate"><span class="nm">'+esc(t.nom)+'</span><br>'
         + '<span class="meta">'+frDate(t.date)+' · '+t.equipes.length+' équipes · '
         + joues+'/'+t.matchs.length+' matchs</span></span>'
         + (ch && tournoiFini(t) ? pastilleEq(t, ch, 22) : '')
-        + '<span class="chev">›</span></button>';
+        + '<span class="chev">›</span></button>'
+        + '<button class="btn sm ghost" data-sup="'+t.id+'" aria-label="Supprimer '+esc(t.nom)+'"'
+        + ' style="min-width:44px;min-height:44px;flex:none">✕</button></div>';
     });
     h += '</div></div>';
   }
@@ -4252,6 +4284,16 @@ function vueUnss(){
   on("#newt", sheetNouveauTournoi);
   each("[data-t]", function(b){
     b.onclick = function(){ go({n:"tournoi", id:b.dataset.t}); };
+  });
+  each("[data-sup]", function(b){
+    b.onclick = function(){
+      var t = tournoiById(b.dataset.sup);
+      if(!t) return;
+      if(!window.confirm("Supprimer « " + t.nom + " » ? Les scores seront perdus.")) return;
+      var u2 = lireUnss();
+      u2.tournois = u2.tournois.filter(function(x){ return x.id !== t.id; });
+      ecrireUnss(u2); render(); toast("Tournoi supprimé");
+    };
   });
 }
 
@@ -4483,18 +4525,19 @@ function vueClassement(){
     h += '<div class="sect">'
       + ((t.poulesComposition.length > 1)
           ? '<span class="eyebrow">Poule ' + String.fromCharCode(65 + p) + '</span>' : '')
-      + '<table class="clst">'
-      + '<tr><th></th><th>Équipe</th><th class="n">J</th><th class="n">G</th><th class="n">N</th>'
-      + '<th class="n">P</th><th class="n">Diff</th><th class="n">Pts</th></tr>';
+      + '<div class="ftwrap"><table class="ftab">'
+      + '<thead><tr><th></th><th class="g">Équipe</th><th>J</th><th>G</th><th>N</th>'
+      + '<th>P</th><th>Diff</th><th>Pts</th></tr></thead><tbody>';
     cl.forEach(function(l, i){
-      h += '<tr'+(i < nq ? ' class="qual"' : '')+'><td class="n">'+(i+1)+'</td>'
-        + '<td><span class="row" style="gap:8px">'+pastilleEq(t, l.id, 22)+esc(nomEq(t, l.id))+'</span></td>'
-        + '<td class="n">'+l.j+'</td><td class="n">'+l.g+'</td>'
-        + '<td class="n">'+l.n+'</td><td class="n">'+l.pe+'</td>'
-        + '<td class="n">'+(l.bp - l.bc > 0 ? "+" : "")+(l.bp - l.bc)+'</td>'
-        + '<td class="n"><b>'+l.pts+'</b></td></tr>';
+      var d = l.bp - l.bc;
+      h += '<tr'+(i < nq ? ' class="q"' : '')+'>'
+        + '<td><span class="rang">'+(i+1)+'</span></td>'
+        + '<td class="g"><span class="eq">'+pastilleEq(t, l.id, 22)+esc(nomEq(t, l.id))+'</span></td>'
+        + '<td>'+l.j+'</td><td>'+l.g+'</td><td>'+l.n+'</td><td>'+l.pe+'</td>'
+        + '<td class="dif '+(d > 0 ? "pos" : (d < 0 ? "neg" : ""))+'">'+(d > 0 ? "+" : "")+d+'</td>'
+        + '<td class="pts">'+l.pts+'</td></tr>';
     });
-    h += '</table></div>';
+    h += '</tbody></table></div></div>';
   });
 
   if(vide){
