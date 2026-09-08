@@ -141,6 +141,79 @@ label.field > span{display:block;font-size:11px;font-weight:600;color:var(--ink-
 .der-l::before{content:"";position:absolute;left:2px;top:15px;width:6px;height:6px;
   border-radius:50%;background:var(--c)}
 
+/* Fiche de séance exploitable en cours : matériel repliable, étapes,
+   minuteurs. Cibles tactiles à 44 px minimum, lisibles à un mètre. */
+.mat-bandeau{display:flex;align-items:center;gap:8px;width:100%;min-height:44px;
+  padding:0 12px;margin-top:14px;border:1px solid var(--line-strong);border-radius:12px;
+  background:var(--surface-2);font-size:14px;font-weight:600;color:var(--ink);text-align:left}
+.mat-bandeau .fl{flex:none;color:var(--c);font-size:13px;transition:transform .15s}
+.mat-bandeau[aria-expanded="true"] .fl{transform:rotate(90deg)}
+.mat-liste{margin:8px 0 0;padding:0;list-style:none}
+.mat-liste li{padding:7px 0 7px 18px;position:relative;font-size:14px;line-height:1.4;
+  border-top:1px solid var(--line)}
+.mat-liste li:first-child{border-top:0}
+.mat-liste li::before{content:"";position:absolute;left:3px;top:15px;width:6px;height:6px;
+  border-radius:2px;background:var(--c)}
+
+.etape{border:1px solid var(--line);border-radius:12px;margin-top:12px;overflow:hidden;
+  background:var(--surface)}
+.etape.faite{opacity:.55}
+.etape.faite .etape-titre{text-decoration:line-through}
+.etape-tete{display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--cs);flex-wrap:wrap}
+.coche-etape{flex:none;width:44px;height:44px;border-radius:12px;border:2px solid var(--c);
+  background:var(--surface);color:#fff;font-size:20px;font-weight:700;line-height:1;
+  display:grid;place-items:center}
+.coche-etape[aria-pressed="true"]{background:var(--c)}
+.etape-num{flex:none;min-width:30px;height:30px;padding:0 6px;border-radius:9px;background:var(--c);
+  color:#fff;display:grid;place-items:center;font-family:Archivo;font-weight:800;font-size:15px}
+/* Le titre prend toute la largeur sous la première ligne : lisible à un mètre,
+   sans être compressé entre le numéro et la durée sur un écran étroit. */
+.etape-titre{flex:1 0 100%;order:3;font-family:Archivo;font-weight:800;font-size:21px;
+  line-height:1.15;color:var(--c);text-transform:uppercase;letter-spacing:-.01em;text-wrap:balance}
+.etape-duree{flex:none;margin-left:auto;font-family:"IBM Plex Mono",monospace;font-weight:600;
+  font-size:14px;color:var(--c);background:var(--surface);border-radius:999px;padding:6px 12px}
+.etape-corps{padding:12px}
+.etape-consigne{margin:0 0 10px;font-size:15.5px;line-height:1.45}
+.etape-consigne:last-of-type{margin-bottom:0}
+.qual{margin-top:10px;padding:9px 11px;border-radius:10px;background:var(--surface-2);
+  font-size:14px;line-height:1.45}
+.qual .qual-lbl{display:block;font-size:11px;font-weight:700;letter-spacing:.08em;
+  text-transform:uppercase;margin-bottom:3px;color:var(--ink-3)}
+.qual.q-reussite{background:var(--ok-soft)} .qual.q-reussite .qual-lbl{color:var(--ok)}
+.qual.q-realisation{background:var(--accent-soft)} .qual.q-realisation .qual-lbl{color:var(--accent-ink)}
+.repli{display:flex;align-items:center;gap:8px;width:100%;min-height:44px;margin-top:8px;
+  padding:0 12px;border:1px dashed var(--line-strong);border-radius:10px;background:var(--surface);
+  font-size:14px;font-weight:600;color:var(--ink-2);text-align:left}
+.repli .fl{flex:none;color:var(--ink-3);transition:transform .15s}
+.repli[aria-expanded="true"] .fl{transform:rotate(90deg)}
+.repli-corps{margin-top:6px;padding:9px 11px;border-radius:10px;background:var(--surface-2);
+  font-size:14px;line-height:1.45}
+.repli-corps p{margin:0 0 7px}
+.repli-corps p:last-child{margin-bottom:0}
+
+.chrono{display:flex;align-items:center;gap:6px;margin-top:12px;padding-top:12px;
+  border-top:1px solid var(--line);flex-wrap:wrap}
+.chrono-t{flex:none;min-width:96px;text-align:center;font-family:"IBM Plex Mono",monospace;
+  font-weight:600;font-size:26px;line-height:1;padding:8px 10px;border-radius:12px;
+  background:var(--surface-2);color:var(--ink);font-variant-numeric:tabular-nums}
+.chrono-t.marche{background:var(--c);color:#fff}
+.chrono-t.fini{background:var(--alert);color:#fff}
+.chrono button{flex:1;min-width:84px;min-height:44px;border-radius:10px;
+  border:1px solid var(--line-strong);background:var(--surface);font-size:14px;font-weight:600}
+@media (prefers-reduced-motion:no-preference){
+  .chrono-t.fini{animation:sonne .8s steps(1) infinite}
+  @keyframes sonne{50%{background:var(--surface-2);color:var(--alert)}}
+}
+
+.tirage-nom{margin:6px 0;padding:26px 12px;border-radius:var(--r);background:var(--cs);
+  color:var(--c);text-align:center;font-family:Archivo;font-weight:800;line-height:1.05;
+  font-size:clamp(30px,11vw,58px);word-break:break-word;min-height:118px;
+  display:flex;align-items:center;justify-content:center}
+.tirage-nom .pre{display:block}
+.tirage-nom small{display:block;font-family:"Public Sans",sans-serif;font-weight:600;
+  font-size:15px;letter-spacing:.04em;margin-top:8px;opacity:.75;text-transform:uppercase}
+.tirage-cpt{font-family:"IBM Plex Mono",monospace;font-variant-numeric:tabular-nums}
+
 /* Groupes de niveau */
 .grp{display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--surface);
   border:1px solid var(--line);border-left:4px solid var(--c);border-radius:12px}
@@ -1050,6 +1123,7 @@ function vueSeance(){
     + '<span class="grow"></span><button class="btn sm" id="addapsa">APSA…</button></div>';
 
   var sq = ap ? seanceDuJour(cl.id, ap, date) : null;
+  var etapes = null, coches = {};
   if(sq){
     var f = sq.fiche;
     h += '<div class="fiche" style="margin-top:12px">'
@@ -1057,8 +1131,19 @@ function vueSeance(){
       + '<span class="grow"><b class="fiche-titre">'+esc(f && f.titre ? f.titre : "Séance à préparer")+'</b>'
       + '<span class="muted" style="display:block;font-size:12px">'+esc(ap.nom)+'</span></span></div>';
     if(f && f.objectif) h += '<p class="fiche-obj"><span class="eyebrow">Objectif</span>'+esc(f.objectif)+'</p>';
-    if(f && f.materiel) h += '<p class="fiche-mat"><span class="eyebrow">Matériel</span>'+esc(f.materiel)+'</p>';
-    if(f && f.deroule) h += '<div class="fiche-der"><span class="eyebrow">Déroulé</span>'+deroulHTML(f.deroule)+'</div>';
+    if(f && f.materiel) h += materielHTML(f.materiel);
+    if(f && f.deroule){
+      etapes = analyserDeroule(f.deroule);
+      if(etapes){
+        coches = lireCleAnnexe(KEY_ETAPES, VERSION_ETAPES).seances[cleSeance(ap, sq.num)] || {};
+        h += '<div class="fiche-der"><span class="eyebrow">Déroulé · '+etapes.length+' étapes</span>'
+          + etapesHTML(etapes, coches) + '</div>'
+          + '<button class="btn sm wide" id="decocher" style="margin-top:12px">Tout décocher</button>';
+      } else {
+        /* Déroulé hors convention : rendu identique à avant. */
+        h += '<div class="fiche-der"><span class="eyebrow">Déroulé</span>'+deroulHTML(f.deroule)+'</div>';
+      }
+    }
     if(f && f.projet) h += '<p class="fiche-pr"><span class="eyebrow">Projet d\'établissement</span>'+esc(f.projet)+'</p>';
     if(!f) h += '<p class="muted" style="font-size:13px;margin:10px 0 0">Aucun contenu saisi pour cette séance.</p>';
     h += '<div class="row" style="margin-top:12px">'
@@ -1103,7 +1188,9 @@ function vueSeance(){
     });
   }
 
-  h += '<div class="sect"><button class="btn wide" id="atelier">Atelier de performances</button></div>';
+  h += '<div class="sect"><div class="row">'
+    + '<button class="btn grow" id="atelier">Atelier de performances</button>'
+    + '<button class="btn grow" id="tirage">Tirer un élève</button></div></div>';
 
   h += '<div class="sect"'+styleClasse(cl.nom)+'><span class="eyebrow">Appel · '+els.length+' élève'+(els.length>1?"s":"")+'</span><div class="stack" style="gap:8px">';
   if(!els.length) h += '<div class="empty">Aucun élève dans ce groupe.</div>';
@@ -1164,6 +1251,72 @@ function vueSeance(){
   each("[data-comp]", function(b){ b.onclick = function(){ sheetComp(b.dataset.comp, ap); }; });
   each("[data-fiche]", function(b){ b.onclick = function(){ go({n:"eleve", id:b.dataset.fiche, from:view}); }; });
   brancherDispenses();
+  on("#tirage", function(){ sheetTirage(cl, ap, sq, els, date); });
+  brancherSeance(ap, sq, etapes);
+}
+
+/* Interactions de la fiche : dépliages, cases « fait », minuteurs.
+   Appelée après chaque rendu de la séance ; restaure le minuteur en cours. */
+function brancherSeance(ap, sq, etapes){
+  var bandeau = app.querySelector("#matbandeau");
+  if(bandeau){
+    bandeau.onclick = function(){
+      var l = app.querySelector("#matliste");
+      var ouvert = bandeau.getAttribute("aria-expanded") === "true";
+      bandeau.setAttribute("aria-expanded", String(!ouvert));
+      if(l) l.hidden = ouvert;
+    };
+  }
+  each("[data-repli]", function(b){
+    b.onclick = function(){
+      var c = app.querySelector("#" + b.dataset.repli);
+      var ouvert = b.getAttribute("aria-expanded") === "true";
+      b.setAttribute("aria-expanded", String(!ouvert));
+      if(c) c.hidden = ouvert;
+    };
+  });
+
+  if(!etapes || !ap || !sq) return;
+  var cle = cleSeance(ap, sq.num);
+
+  each("[data-fait]", function(b){
+    b.onclick = function(){
+      var i = b.dataset.fait;
+      var reg = lireCleAnnexe(KEY_ETAPES, VERSION_ETAPES);
+      if(!reg.seances[cle]) reg.seances[cle] = {};
+      if(reg.seances[cle][i]) delete reg.seances[cle][i];
+      else reg.seances[cle][i] = true;
+      var fait = !!reg.seances[cle][i];
+      ecrireCleAnnexe(KEY_ETAPES, reg);
+      b.setAttribute("aria-pressed", String(fait));
+      b.textContent = fait ? "✓" : "";
+      var bloc = app.querySelector('[data-etape="' + i + '"]');
+      if(bloc) bloc.className = "etape" + (fait ? " faite" : "");
+    };
+  });
+  on("#decocher", function(){
+    var reg = lireCleAnnexe(KEY_ETAPES, VERSION_ETAPES);
+    delete reg.seances[cle];
+    ecrireCleAnnexe(KEY_ETAPES, reg);
+    render();
+    toast("Étapes décochées");
+  });
+
+  each("[data-chr]", function(b){
+    b.onclick = function(){
+      var i = parseInt(b.dataset.i, 10);
+      var mn = etapes[i].minutes;
+      if(b.dataset.chr === "marche") lancerMinuteur(cle, i, mn);
+      else if(b.dataset.chr === "pause") pauserMinuteur();
+      else razMinuteur(cle, i, mn);
+    };
+  });
+
+  /* Retour sur la séance : on remet le minuteur là où il en est. */
+  if(minuteur && minuteur.cle === cle && minuteur.i < etapes.length){
+    peindreMinuteur();
+    if(minuteur.marche){ arreterTic(); minuteurTic = setInterval(ticMinuteur, 250); }
+  }
 }
 
 function bascule(eid, type, date){
@@ -1190,6 +1343,288 @@ function deroulHTML(txt){
       return '<span class="der-l">'+esc(m[1])+'</span>';
     }).join("");
 }
+/* ══════════ Séance exploitable en cours ══════════
+   Rien n'est ajouté aux fiches de séance : elles gardent leurs cinq champs.
+   Tout ce qui suit lit le texte du Déroulé au moment de l'affichage.
+   Les cases cochées et le tirage vivent dans leurs propres clés. */
+var KEY_ETAPES = "carnet-eps-etapes-v1";
+var KEY_TIRAGE = "carnet-eps-tirage-v1";
+var VERSION_ETAPES = 1;
+var VERSION_TIRAGE = 1;
+
+function lireCleAnnexe(cle, version){
+  var o = null;
+  try { o = JSON.parse(localStorage.getItem(cle)); } catch(e){ o = null; }
+  if(!o || typeof o !== "object" || o.version !== version) o = {version:version, seances:{}};
+  if(!o.seances || typeof o.seances !== "object") o.seances = {};
+  return o;
+}
+function ecrireCleAnnexe(cle, obj){
+  try { localStorage.setItem(cle, JSON.stringify(obj)); return true; }
+  catch(e){ toast("Stockage plein : rien n'a été enregistré"); return false; }
+}
+/* Les fiches n'ont pas d'identifiant propre : on le dérive, sans rien y écrire. */
+function cleSeance(ap, num){ return ap.id + "#" + num; }
+function cleTirage(cl, ap, sq){
+  return (ap && sq) ? cleSeance(ap, sq.num) : "classe:" + cl.id + "#" + view.date;
+}
+
+/* ── Analyse du Déroulé ──
+   Une étape : "3. LA BALLE NE TOMBE PAS — 20 min".
+   Retourne null dès que le texte ne suit pas la convention : la séance
+   s'affiche alors exactement comme avant, en texte brut. */
+var RE_ETAPE = /^(\d{1,2})\s*[.)]\s*(.+?)\s*[—–-]\s*(\d{1,3})\s*(?:min|mn|')\s*\.?$/i;
+var QUALIFIES = [
+  {cle:"reussite",    re:/^r[ée]ussite\s*:\s*/i,     lbl:"Réussite",     cls:"q-reussite"},
+  {cle:"realisation", re:/^r[ée]alisation\s*:\s*/i,  lbl:"Réalisation",  cls:"q-realisation"},
+  {cle:"simplifier",  re:/^simplifier\s*:\s*/i,      lbl:"Simplifier",   cls:""},
+  {cle:"complexifier",re:/^complexifier\s*:\s*/i,    lbl:"Complexifier", cls:""}
+];
+
+function analyserDeroule(txt){
+  var lignes = String(txt).split("\n").map(function(l){ return l.trim(); }).filter(Boolean);
+  if(!lignes.length) return null;
+  var etapes = [], courante = null, i, j, m, ligne, place;
+  for (i = 0; i < lignes.length; i++){
+    ligne = lignes[i];
+    m = ligne.match(RE_ETAPE);
+    if(m){
+      courante = {num:m[1], titre:m[2], minutes:parseInt(m[3], 10),
+                  consignes:[], reussite:[], realisation:[], simplifier:[], complexifier:[]};
+      etapes.push(courante);
+      continue;
+    }
+    /* Du texte avant la première étape : le déroulé ne suit pas la convention. */
+    if(!courante) return null;
+    place = false;
+    for (j = 0; j < QUALIFIES.length; j++){
+      if(QUALIFIES[j].re.test(ligne)){
+        courante[QUALIFIES[j].cle].push(ligne.replace(QUALIFIES[j].re, "").trim());
+        place = true;
+        break;
+      }
+    }
+    if(!place) courante.consignes.push(ligne.replace(/^[-•*]\s*/, ""));
+  }
+  return etapes.length ? etapes : null;
+}
+
+/* ── Matériel replié ── */
+function elementsMateriel(txt){
+  return String(txt).split(/[,;\n]/).map(function(x){ return x.trim(); }).filter(Boolean);
+}
+function materielHTML(txt){
+  var l = elementsMateriel(txt);
+  if(!l.length) return '';
+  return '<button class="mat-bandeau" id="matbandeau" aria-expanded="false">'
+    + '<span class="fl">▶</span><span class="grow">Matériel · ' + l.length
+    + ' élément' + (l.length > 1 ? 's' : '') + '</span></button>'
+    + '<ul class="mat-liste" id="matliste" hidden>'
+    + l.map(function(x){ return '<li>' + esc(x) + '</li>'; }).join('') + '</ul>';
+}
+
+/* ── Rendu des étapes ── */
+function mmss(ms){
+  var s = Math.max(0, Math.round(ms / 1000));
+  var m = Math.floor(s / 60);
+  s = s % 60;
+  return (m < 10 ? "0" : "") + m + ":" + (s < 10 ? "0" : "") + s;
+}
+function blocRepli(id, lbl, lignes){
+  if(!lignes.length) return '';
+  return '<button class="repli" data-repli="' + id + '" aria-expanded="false">'
+    + '<span class="fl">▶</span><span class="grow">' + lbl + ' (' + lignes.length + ')</span></button>'
+    + '<div class="repli-corps" id="' + id + '" hidden>'
+    + lignes.map(function(x){ return '<p>' + esc(x) + '</p>'; }).join('') + '</div>';
+}
+function etapesHTML(etapes, coches){
+  return etapes.map(function(et, i){
+    var fait = !!coches[i];
+    var h = '<div class="etape' + (fait ? ' faite' : '') + '" data-etape="' + i + '">'
+      + '<div class="etape-tete">'
+      + '<button class="coche-etape" data-fait="' + i + '" aria-pressed="' + fait + '" '
+      + 'aria-label="Marquer l\'étape comme faite">' + (fait ? '✓' : '') + '</button>'
+      + '<span class="etape-num">' + esc(et.num) + '</span>'
+      + '<span class="etape-titre grow">' + esc(et.titre) + '</span>'
+      + '<span class="etape-duree">' + et.minutes + ' min</span>'
+      + '</div><div class="etape-corps">';
+    h += et.consignes.map(function(c){ return '<p class="etape-consigne">' + esc(c) + '</p>'; }).join('');
+    ["reussite","realisation"].forEach(function(k){
+      var q = QUALIFIES.filter(function(x){ return x.cle === k; })[0];
+      et[k].forEach(function(t){
+        h += '<div class="qual ' + q.cls + '"><span class="qual-lbl">' + q.lbl + '</span>' + esc(t) + '</div>';
+      });
+    });
+    h += blocRepli("simp-" + i, "Simplifier", et.simplifier);
+    h += blocRepli("comp-" + i, "Complexifier", et.complexifier);
+    h += '<div class="chrono">'
+      + '<span class="chrono-t" id="chrono-' + i + '">' + mmss(et.minutes * 60000) + '</span>'
+      + '<button data-chr="marche" data-i="' + i + '">Démarrer</button>'
+      + '<button data-chr="pause" data-i="' + i + '">Pause</button>'
+      + '<button data-chr="raz" data-i="' + i + '">Remise à zéro</button>'
+      + '</div></div></div>';
+    return h;
+  }).join('');
+}
+
+/* ── Minuteur ──
+   L'échéance est un horodatage absolu : la mise en veille de la tablette ne
+   fausse rien. Il vit dans une variable de module, donc il survit à un
+   changement d'écran, mais pas à un rechargement de la page. */
+var minuteur = null;
+var minuteurTic = null;
+
+function arreterTic(){
+  if(minuteurTic){ clearInterval(minuteurTic); minuteurTic = null; }
+}
+function restantMinuteur(){
+  if(!minuteur) return 0;
+  return minuteur.marche ? Math.max(0, minuteur.fin - Date.now()) : minuteur.restant;
+}
+function peindreMinuteur(){
+  if(!minuteur) return;
+  var el = document.getElementById("chrono-" + minuteur.i);
+  if(!el) return;
+  var r = restantMinuteur();
+  el.textContent = mmss(r);
+  el.className = "chrono-t" + (r <= 0 ? " fini" : (minuteur.marche ? " marche" : ""));
+}
+function ticMinuteur(){
+  if(!minuteur) return arreterTic();
+  if(minuteur.marche && minuteur.fin - Date.now() <= 0){
+    minuteur.marche = false; minuteur.restant = 0;
+    peindreMinuteur();
+    arreterTic();
+    return;
+  }
+  peindreMinuteur();
+}
+function lancerMinuteur(cle, i, minutes){
+  /* Un seul minuteur à la fois : démarrer ailleurs remplace le précédent,
+     et remet son affichage à sa durée de départ pour ne pas laisser croire
+     que deux étapes tournent en même temps. */
+  if(!minuteur || minuteur.cle !== cle || minuteur.i !== i){
+    if(minuteur && minuteur.cle === cle){
+      var ancien = document.getElementById("chrono-" + minuteur.i);
+      if(ancien){
+        ancien.textContent = mmss(minuteur.minutes * 60000);
+        ancien.className = "chrono-t";
+      }
+    }
+    minuteur = {cle:cle, i:i, minutes:minutes, restant:minutes * 60000, marche:false, fin:0};
+  }
+  if(restantMinuteur() <= 0) minuteur.restant = minutes * 60000;
+  minuteur.fin = Date.now() + minuteur.restant;
+  minuteur.marche = true;
+  arreterTic();
+  minuteurTic = setInterval(ticMinuteur, 250);
+  peindreMinuteur();
+}
+function pauserMinuteur(){
+  if(!minuteur || !minuteur.marche) return;
+  minuteur.restant = restantMinuteur();
+  minuteur.marche = false;
+  arreterTic();
+  peindreMinuteur();
+}
+function razMinuteur(cle, i, minutes){
+  if(minuteur && minuteur.cle === cle && minuteur.i === i){ arreterTic(); minuteur = null; }
+  var el = document.getElementById("chrono-" + i);
+  if(el){ el.textContent = mmss(minutes * 60000); el.className = "chrono-t"; }
+}
+
+/* ── Tirage au sort ──
+   Les noms viennent de la liste déjà enregistrée pour la classe, filtrée
+   comme à l'écran. Une seule liste de « déjà tirés » par séance, quel que
+   soit le groupe affiché. */
+function exclusDuTirage(e, date){
+  if(S.events.some(function(x){
+    return x.eleveId === e.id && x.date === date && (x.type === "absent" || x.type === "dispense");
+  })) return true;
+  return !!dispenseActive(e.id, date);
+}
+function sheetTirage(cl, ap, sq, els, date){
+  var cle = cleTirage(cl, ap, sq);
+  var reg = lireCleAnnexe(KEY_TIRAGE, VERSION_TIRAGE);
+  var anim = null;
+
+  function tires(){ return reg.seances[cle] || []; }
+  function dispos(){
+    return els.filter(function(e){
+      return tires().indexOf(e.id) < 0 && !exclusDuTirage(e, date);
+    });
+  }
+  function nomComplet(e){ return e.prenom ? e.prenom + " " + e.nom.toUpperCase() : e.nom; }
+
+  function texteCompteur(){
+    var n = tires().length;
+    var exclus = els.filter(function(e){ return exclusDuTirage(e, date); }).length;
+    return '<b class="tirage-cpt">' + n + ' / ' + els.length + '</b> déjà tirés'
+      + (exclus ? ' · ' + exclus + ' exclu' + (exclus > 1 ? 's' : '') + ' (absent ou dispensé)' : '');
+  }
+  function majCompteur(){
+    var p = document.getElementById("tcpt");
+    if(p) p.innerHTML = texteCompteur();
+  }
+  function corps(){
+    return '<div class="tirage-nom" id="tnom"><span class="pre">Prêt ?</span></div>'
+      + '<p class="muted" id="tcpt" style="margin:0;font-size:13px">' + texteCompteur() + '</p>'
+      + '<button class="btn primary wide" id="tirer">Tirer un élève</button>'
+      + '<button class="btn wide ghost" id="raztirage">Réinitialiser le tirage</button>';
+  }
+
+  function brancher(root){
+    var zone = root.querySelector("#tnom");
+    root.querySelector("#raztirage").onclick = function(){
+      delete reg.seances[cle];
+      ecrireCleAnnexe(KEY_TIRAGE, reg);
+      root.innerHTML = corps(); brancher(root);
+      toast("Tirage remis à zéro");
+    };
+    root.querySelector("#tirer").onclick = function(){
+      if(anim) return;
+      var d = dispos();
+      if(!d.length){
+        var exclus = els.filter(function(e){ return exclusDuTirage(e, date); }).length;
+        zone.innerHTML = '<span class="pre" style="font-size:22px">'
+          + (els.length && exclus === els.length
+              ? "Tous les élèves affichés sont absents ou dispensés"
+              : "Toute la classe est passée")
+          + '<small>Réinitialise le tirage pour recommencer</small></span>';
+        return;
+      }
+      /* Défilement rapide qui ralentit jusqu'à l'arrêt, environ 2 secondes. */
+      var debut = Date.now(), duree = 2000, pas = 55;
+      anim = function(){
+        var t = (Date.now() - debut) / duree;
+        if(t >= 1){
+          anim = null;
+          var choisi = d[Math.floor(Math.random() * d.length)];
+          if(!reg.seances[cle]) reg.seances[cle] = [];
+          reg.seances[cle].push(choisi.id);
+          ecrireCleAnnexe(KEY_TIRAGE, reg);
+          zone.innerHTML = '<span class="pre">' + esc(nomComplet(choisi))
+            + '<small>' + tires().length + ' / ' + els.length + ' déjà tirés</small></span>';
+          majCompteur();
+          return;
+        }
+        zone.innerHTML = '<span class="pre">' + esc(d[Math.floor(Math.random() * d.length)].prenom || "—") + '</span>';
+        pas = 55 + 260 * t * t;
+        setTimeout(anim, pas);
+      };
+      anim();
+    };
+  }
+
+  ouvrirSheet("Tirer un élève — " + esc(cl.nom),
+    '<div id="tzone"></div>',
+    function(root){
+      var z = root.querySelector("#tzone");
+      z.innerHTML = corps();
+      brancher(z);
+    });
+}
+
 function vueCycle(){
   var cl = classeById(view.classeId);
   var ap = S.apsa.filter(function(a){ return a.id === view.apsaId; })[0];
@@ -2363,7 +2798,7 @@ function chargerDemo(){
    CLES_STOCKAGE est dérivé de KEY, jamais recopié à la main : si une clé
    est ajoutée un jour, il suffit de l'ajouter ici. */
 var VERSION_SAUVEGARDE = 1;
-var CLES_STOCKAGE = [KEY];
+var CLES_STOCKAGE = [KEY, KEY_ETAPES, KEY_TIRAGE];
 
 function nomFichierSauvegarde(){
   return "carnet-eps-sauvegarde-" + AUJ() + ".json";
