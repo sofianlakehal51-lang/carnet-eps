@@ -482,6 +482,10 @@ nav.tabbar svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width
 /* Sans cela, un SVG tourne autour de son coin haut-gauche et la roue part
    hors de l écran au lieu de pivoter sur elle-même. */
 .roue-svg g{transform-box:view-box;transform-origin:50% 50%}
+/* Grille de chiffres : on crée un tournoi en touchant un nombre, rien d autre. */
+.nbgrille{display:grid;grid-template-columns:repeat(5,1fr);gap:8px}
+.nbgrille .nb{min-height:60px;font-size:22px;font-family:"IBM Plex Mono",monospace;padding:0}
+.nbgrille .nb.sel{border-color:var(--accent);border-width:2px}
 .roue-res{font-family:Archivo;font-size:clamp(30px,10vw,68px);line-height:1.1;text-align:center;
   min-height:1.15em;display:flex;align-items:center;justify-content:center;gap:14px}
 .roue-btn{min-height:66px;font-size:21px;width:min(92vw,430px)}
@@ -498,7 +502,7 @@ nav.tabbar svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width
 /* Numéro de version affiché dans les Réglages. À garder identique à VERSION
    dans sw.js : c'est le seul moyen de savoir ce que la tablette exécute
    vraiment quand une mise à jour semble ne pas être arrivée. */
-var BUILD = "v8";
+var BUILD = "v9";
 
 var KEY = "carnet-eps-v1";
 function uid(){ return Math.random().toString(36).slice(2,10); }
@@ -1060,7 +1064,7 @@ var ICONS = {
 };
 var RACINE = {jour:"jour", seance:"jour", atelier:"jour", cycle:"classes", groupes:"classes",
               classes:"classes", classe:"classes", rappels:"rappels",
-              unss:"classes", tournoi:"classes",
+              unss:"classes", tournoi:"classes", classement:"classes",
               docs:"docs", doc:"docs", reglages:"docs",
               eleves:"eleves", eleve:"eleves", dispenses:"eleves"};
 function renderNav(){
@@ -4175,52 +4179,96 @@ function vueUnss(){
   });
 }
 
+/* Créer un tournoi doit tenir en un geste : on touche le nombre d'équipes et
+   c'est parti. Une poule unique, aucune phase finale, quatre minutes par match.
+   Les réglages restent accessibles, repliés, pour les fois où ça ne suffit pas. */
+var DEFAUTS_TOURNOI = {poules:1, finale:"aucune", duree:4};
+
 function sheetNouveauTournoi(){
-  var opts = "";
-  for(var i = 3; i <= 12; i++) opts += '<option value="'+i+'"'+(i===6?" selected":"")+'>'+i+' équipes</option>';
-  ouvrirSheet("Organiser un tournoi",
-    '<label class="field"><span>Nom</span><input type="text" id="nm" value="Tournoi du '+frDate(AUJ())+'"></label>'
-    + '<label class="field"><span>Date</span><input type="date" id="dt" value="'+AUJ()+'"></label>'
-    + '<label class="field"><span>Nombre d\'équipes</span><select id="ne">'+opts+'</select></label>'
+  var n = lireUnss().tournois.length + 1;
+  var grille = "";
+  for(var i = 3; i <= 12; i++){
+    grille += '<button class="btn nb" data-n="'+i+'">'+i+'</button>';
+  }
+  ouvrirSheet("Combien d'équipes ?",
+    '<div class="nbgrille">' + grille + '</div>'
+    + '<p class="muted" style="font-size:13px;margin:0">Une poule, tout le monde se rencontre, '
+    + 'matchs de 4 minutes. Les couleurs sont attribuées toutes seules.</p>'
+    + '<button class="btn wide ghost" id="plus">Réglages…</button>'
+    + '<div id="opts" style="display:none">'
     + '<label class="field"><span>Poules</span><select id="np">'
     + '<option value="1" selected>1 poule (tout le monde se rencontre)</option>'
     + '<option value="2">2 poules</option><option value="3">3 poules</option>'
     + '<option value="4">4 poules</option></select></label>'
     + '<label class="field"><span>Phase finale</span><select id="pf">'
-    + '<option value="aucune">Aucune — classement seul</option>'
+    + '<option value="aucune" selected>Aucune — classement seul</option>'
     + '<option value="finale">Finale (les 2 premiers)</option>'
-    + '<option value="demies" selected>Demi-finales (les 4 premiers)</option>'
+    + '<option value="demies">Demi-finales (les 4 premiers)</option>'
     + '<option value="quarts">Quarts de finale (les 8 premiers)</option></select></label>'
     + '<label class="field"><span>Durée d\'un match (minutes)</span>'
-    + '<input type="number" id="du" min="2" max="30" value="8"></label>'
-    + '<p class="muted" style="font-size:13px;margin:0">Les couleurs sont attribuées automatiquement. '
-    + 'Tu pourras les changer une par une ensuite.</p>'
-    + '<button class="btn primary wide" id="ok">Créer le tournoi</button>',
+    + '<input type="number" id="du" min="1" max="30" value="'+DEFAUTS_TOURNOI.duree+'"></label></div>',
     function(root){
-      root.querySelector("#ok").onclick = function(){
-        var ne = parseInt(root.querySelector("#ne").value, 10);
-        var np = parseInt(root.querySelector("#np").value, 10);
-        var pf = root.querySelector("#pf").value;
-        if(np > Math.floor(ne / 2)){
-          return toast("Trop de poules pour " + ne + " équipes");
-        }
-        if(pf !== "aucune" && TAILLES[pf] > ne){
-          return toast(PHASES[pf] + " : il faut au moins " + TAILLES[pf] + " équipes");
-        }
-        var t = {
-          id:uid(),
-          nom:root.querySelector("#nm").value.trim() || "Tournoi",
-          date:root.querySelector("#dt").value || AUJ(),
-          config:{poules:np, finale:pf,
-                  duree:Math.max(2, Math.min(30, parseInt(root.querySelector("#du").value, 10) || 8))},
-          equipes:MAILLOTS.slice(0, ne).map(function(m){ return {id:uid(), couleur:m.id}; }),
-          matchs:[]
+      var opts = root.querySelector("#opts");
+      root.querySelector("#plus").onclick = function(){
+        var ouvert = opts.style.display !== "none";
+        opts.style.display = ouvert ? "none" : "block";
+        this.textContent = ouvert ? "Réglages…" : "Masquer les réglages";
+      };
+      Array.prototype.forEach.call(root.querySelectorAll("[data-n]"), function(b){
+        b.onclick = function(){
+          var ne = parseInt(b.dataset.n, 10);
+          var np = parseInt(root.querySelector("#np").value, 10) || DEFAUTS_TOURNOI.poules;
+          var pf = root.querySelector("#pf").value || DEFAUTS_TOURNOI.finale;
+          if(np > Math.floor(ne / 2)) return toast("Trop de poules pour " + ne + " équipes");
+          if(pf !== "aucune" && TAILLES[pf] > ne){
+            return toast(PHASES[pf] + " : il faut au moins " + TAILLES[pf] + " équipes");
+          }
+          var t = {
+            id:uid(),
+            nom:"Tournoi " + n,
+            date:AUJ(),
+            config:{poules:np, finale:pf,
+                    duree:Math.max(1, Math.min(30,
+                      parseInt(root.querySelector("#du").value, 10) || DEFAUTS_TOURNOI.duree))},
+            equipes:MAILLOTS.slice(0, ne).map(function(m){ return {id:uid(), couleur:m.id}; }),
+            matchs:[]
+          };
+          genererTournoi(t);
+          if(!sauverTournoi(t)) return;
+          fermerSheet();
+          go({n:"tournoi", id:t.id});
+          toast(t.matchs.length + " matchs · " + t.config.duree + " min");
         };
-        genererTournoi(t);
-        if(!sauverTournoi(t)) return;
-        fermerSheet();
-        go({n:"tournoi", id:t.id});
-        toast(t.matchs.length + " matchs de poule programmés");
+      });
+    });
+}
+
+/* La durée reste modifiable une fois le tournoi lancé : on ne devine pas
+   toujours juste avant d'avoir vu jouer la première rencontre. */
+function sheetDuree(tid){
+  var t = tournoiById(tid);
+  if(!t) return;
+  var choix = [3, 4, 5, 6, 8, 10, 12, 15];
+  ouvrirSheet("Durée d'un match",
+    '<div class="nbgrille">'
+    + choix.map(function(m){
+        return '<button class="btn nb' + (m === t.config.duree ? ' sel' : '') + '" data-d="'+m+'">'+m+'</button>';
+      }).join("")
+    + '</div>'
+    + '<label class="field"><span>Autre durée (minutes)</span>'
+    + '<input type="number" id="du" min="1" max="45" value="'+t.config.duree+'"></label>'
+    + '<button class="btn primary wide" id="ok">Enregistrer</button>',
+    function(root){
+      function poser(v){
+        t.config.duree = Math.max(1, Math.min(45, v));
+        sauverTournoi(t); fermerSheet(); render();
+        toast("Matchs de " + t.config.duree + " min");
+      }
+      Array.prototype.forEach.call(root.querySelectorAll("[data-d]"), function(b){
+        b.onclick = function(){ poser(parseInt(b.dataset.d, 10)); };
+      });
+      root.querySelector("#ok").onclick = function(){
+        poser(parseInt(root.querySelector("#du").value, 10) || t.config.duree);
       };
     });
 }
@@ -4258,6 +4306,9 @@ function vueTournoi(){
   h += '<div class="sect"><div class="row">'
     + '<button class="btn grow primary" id="roue">Roue des couleurs</button>'
     + (courant ? '<button class="btn grow" id="chrono">Chrono '+t.config.duree+' min</button>' : '')
+    + '</div><div class="row" style="margin-top:8px">'
+    + '<button class="btn grow" id="clst">Classement</button>'
+    + '<button class="btn grow" id="duree">Durée : '+t.config.duree+' min</button>'
     + '</div></div>';
 
   /* Les matchs, groupés par phase, dans l'ordre de passage. */
@@ -4285,25 +4336,6 @@ function vueTournoi(){
     h += '<div class="sect"><button class="btn wide primary" id="etape">'
       + 'Lancer les ' + esc((PHASES[etape.phase] || "").toLowerCase()) + '</button></div>';
   }
-
-  /* Classements de poule. */
-  (t.poulesComposition || []).forEach(function(_, p){
-    var cl = classementPoule(t, p);
-    if(!cl.length) return;
-    var nq = t.config.finale !== "aucune"
-      ? Math.ceil(Math.min(TAILLES[t.config.finale] || 0, t.equipes.length) / t.config.poules) : 0;
-    h += '<div class="sect"><span class="eyebrow">Classement · poule '
-      + String.fromCharCode(65 + p) + '</span><table class="clst">'
-      + '<tr><th></th><th>Équipe</th><th class="n">J</th><th class="n">Diff</th><th class="n">Pts</th></tr>';
-    cl.forEach(function(l, i){
-      h += '<tr'+(i < nq ? ' class="qual"' : '')+'><td class="n">'+(i+1)+'</td>'
-        + '<td><span class="row" style="gap:8px">'+pastilleEq(t, l.id, 20)+esc(nomEq(t, l.id))+'</span></td>'
-        + '<td class="n">'+l.j+'</td>'
-        + '<td class="n">'+(l.bp - l.bc > 0 ? "+" : "")+(l.bp - l.bc)+'</td>'
-        + '<td class="n"><b>'+l.pts+'</b></td></tr>';
-    });
-    h += '</table></div>';
-  });
 
   h += '<div class="sect"><span class="eyebrow">Équipes · touche pour changer la couleur</span>';
   t.equipes.forEach(function(e){
@@ -4348,8 +4380,58 @@ function vueTournoi(){
     u.tournois = u.tournois.filter(function(x){ return x.id !== t.id; });
     ecrireUnss(u); go({n:"unss"}); toast("Tournoi supprimé");
   });
+  on("#clst", function(){ go({n:"classement", id:t.id}); });
+  on("#duree", function(){ sheetDuree(t.id); });
   each("[data-m]", function(b){ b.onclick = function(){ sheetScore(t.id, b.dataset.m); }; });
   each("[data-e]", function(b){ b.onclick = function(){ sheetCouleur(t.id, b.dataset.e); }; });
+}
+
+/* ── Écran : le classement ──
+   Sorti de la page du tournoi, qui devenait trop longue à faire défiler entre
+   deux matchs. Ici il tient d'un coup d'œil. */
+function vueClassement(){
+  var t = tournoiById(view.id);
+  if(!t) return go({n:"unss"});
+  var joues = t.matchs.filter(matchJoue).length;
+
+  var h = header("Classement", t.nom + " · " + joues + "/" + t.matchs.length + " matchs", true);
+
+  var vide = true;
+  (t.poulesComposition || []).forEach(function(_, p){
+    var cl = classementPoule(t, p);
+    if(!cl.length) return;
+    vide = false;
+    var nq = t.config.finale !== "aucune"
+      ? Math.ceil(Math.min(TAILLES[t.config.finale] || 0, t.equipes.length) / t.config.poules) : 0;
+    h += '<div class="sect">'
+      + ((t.poulesComposition.length > 1)
+          ? '<span class="eyebrow">Poule ' + String.fromCharCode(65 + p) + '</span>' : '')
+      + '<table class="clst">'
+      + '<tr><th></th><th>Équipe</th><th class="n">J</th><th class="n">G</th><th class="n">N</th>'
+      + '<th class="n">P</th><th class="n">Diff</th><th class="n">Pts</th></tr>';
+    cl.forEach(function(l, i){
+      h += '<tr'+(i < nq ? ' class="qual"' : '')+'><td class="n">'+(i+1)+'</td>'
+        + '<td><span class="row" style="gap:8px">'+pastilleEq(t, l.id, 22)+esc(nomEq(t, l.id))+'</span></td>'
+        + '<td class="n">'+l.j+'</td><td class="n">'+l.g+'</td>'
+        + '<td class="n">'+l.n+'</td><td class="n">'+l.pe+'</td>'
+        + '<td class="n">'+(l.bp - l.bc > 0 ? "+" : "")+(l.bp - l.bc)+'</td>'
+        + '<td class="n"><b>'+l.pts+'</b></td></tr>';
+    });
+    h += '</table></div>';
+  });
+
+  if(vide){
+    h += '<div class="sect"><div class="empty">Aucun match joué pour l\'instant.</div></div>';
+  } else {
+    h += '<div class="sect"><p class="muted" style="font-size:13px;margin:0">'
+      + 'Victoire 3 points, nul 1 point. À égalité, c\'est la différence de buts qui départage, '
+      + 'puis les buts marqués.'
+      + (t.config.finale !== "aucune" ? ' Les lignes vertes sont qualifiées.' : '')
+      + '</p></div>';
+  }
+
+  app.innerHTML = h;
+  on("#back", function(){ go({n:"tournoi", id:t.id}); });
 }
 
 function sheetCouleur(tid, eid){
@@ -4458,7 +4540,7 @@ var VUES = {jour:vueJour, seance:vueSeance, cycle:vueCycle, groupes:vueGroupes,
             docs:vueDocs, doc:vueDoc,
             eleves:vueEleves, eleve:vueEleve, dispenses:vueDispenses,
             atelier:vueAtelier, reglages:vueReglages,
-            unss:vueUnss, tournoi:vueTournoi};
+            unss:vueUnss, tournoi:vueTournoi, classement:vueClassement};
 function render(){
   renderNav();
   (VUES[view.n] || vueJour)();
