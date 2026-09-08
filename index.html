@@ -433,6 +433,58 @@ nav.tabbar svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width
 .jauge{height:6px;border-radius:999px;background:var(--surface-2);overflow:hidden;margin-top:8px}
 .jauge span{display:block;height:100%;background:var(--accent)}
 .jauge.pleine-alerte span{background:var(--alert)}
+
+/* ══ UNSS Football ══
+   Vert de pelouse et lignes blanches : la rubrique doit se reconnaître au
+   premier coup d'œil au milieu des classes. */
+.foot{background:linear-gradient(160deg,#0E7A3C,#08532A);color:#fff;border:0;border-radius:16px;
+  padding:16px;width:100%;text-align:left;position:relative;overflow:hidden;cursor:pointer;
+  display:flex;align-items:center;gap:12px}
+.foot::after{content:"";position:absolute;right:-34px;top:-34px;width:150px;height:150px;
+  border:3px solid rgba(255,255,255,.20);border-radius:50%}
+.foot::before{content:"";position:absolute;left:0;right:0;top:50%;height:2px;background:rgba(255,255,255,.16)}
+.foot .bal{position:relative;flex:none;width:42px;height:42px;border-radius:50%;background:#fff;
+  color:#08532A;display:flex;align-items:center;justify-content:center;font-size:22px}
+.foot .t{font-family:Archivo;font-size:19px;display:block;position:relative}
+.foot .s{font-size:13px;opacity:.86;display:block;margin-top:2px;position:relative}
+.foot .chev{position:relative;font-size:22px;opacity:.8}
+
+.past{border-radius:50%;flex:none;border:2px solid rgba(0,0,0,.14);display:inline-block;vertical-align:middle}
+.eqrow{display:flex;align-items:center;gap:10px;width:100%;min-height:56px;padding:8px 12px;
+  background:var(--surface);border:1px solid var(--line);border-radius:12px;cursor:pointer;
+  text-align:left;margin-bottom:8px}
+.eqrow .nm{font-family:Archivo;font-size:16px}
+
+.mrow{display:flex;align-items:center;gap:9px;padding:10px;border:1px solid var(--line);
+  border-radius:12px;background:var(--surface);margin-bottom:8px;width:100%;text-align:left;cursor:pointer}
+.mrow.encours{border-color:#0E7A3C;border-width:2px;box-shadow:0 0 0 3px rgba(14,122,60,.12)}
+.mrow.finie{opacity:.60}
+.mno{font-family:"IBM Plex Mono",monospace;font-size:12px;color:var(--ink-2);flex:none;min-width:22px}
+.msc{font-family:"IBM Plex Mono",monospace;font-size:19px;min-width:56px;text-align:center;flex:none}
+.marb{font-size:11px;color:var(--ink-2);display:flex;align-items:center;gap:4px;flex:none}
+.mphase{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--ink-2);
+  margin:14px 0 8px;display:block}
+
+.clst{width:100%;border-collapse:collapse;font-size:13px}
+.clst th{text-align:left;font-size:10px;color:var(--ink-2);text-transform:uppercase;
+  letter-spacing:.04em;padding:6px 3px;font-weight:600}
+.clst td{padding:8px 3px;border-top:1px solid var(--line)}
+.clst td.n,.clst th.n{text-align:center;font-family:"IBM Plex Mono",monospace}
+.clst tr.qual td{background:#F0FAF3}
+
+/* La roue doit être lisible depuis l'autre bout du plateau. */
+.roue{position:fixed;inset:0;z-index:90;background:var(--paper);display:flex;flex-direction:column;
+  align-items:center;justify-content:center;gap:12px;padding:16px}
+.roue-x{position:absolute;top:12px;right:12px;width:52px;height:52px;border-radius:14px;
+  border:1px solid var(--line);background:var(--surface);color:var(--ink);font-size:24px;cursor:pointer}
+.roue-titre{font-size:14px;color:var(--ink-2);text-transform:uppercase;letter-spacing:.06em}
+.roue-svg{width:min(80vw,52vh);height:min(80vw,52vh);max-width:460px;max-height:460px}
+/* Sans cela, un SVG tourne autour de son coin haut-gauche et la roue part
+   hors de l écran au lieu de pivoter sur elle-même. */
+.roue-svg g{transform-box:view-box;transform-origin:50% 50%}
+.roue-res{font-family:Archivo;font-size:clamp(30px,10vw,68px);line-height:1.1;text-align:center;
+  min-height:1.15em;display:flex;align-items:center;justify-content:center;gap:14px}
+.roue-btn{min-height:66px;font-size:21px;width:min(92vw,430px)}
 </style>
 </head>
 <body>
@@ -446,7 +498,7 @@ nav.tabbar svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width
 /* Numéro de version affiché dans les Réglages. À garder identique à VERSION
    dans sw.js : c'est le seul moyen de savoir ce que la tablette exécute
    vraiment quand une mise à jour semble ne pas être arrivée. */
-var BUILD = "v7";
+var BUILD = "v8";
 
 var KEY = "carnet-eps-v1";
 function uid(){ return Math.random().toString(36).slice(2,10); }
@@ -1008,6 +1060,7 @@ var ICONS = {
 };
 var RACINE = {jour:"jour", seance:"jour", atelier:"jour", cycle:"classes", groupes:"classes",
               classes:"classes", classe:"classes", rappels:"rappels",
+              unss:"classes", tournoi:"classes",
               docs:"docs", doc:"docs", reglages:"docs",
               eleves:"eleves", eleve:"eleves", dispenses:"eleves"};
 function renderNav(){
@@ -1416,6 +1469,10 @@ function deroulHTML(txt){
    Rien n'est ajouté aux fiches de séance : elles gardent leurs cinq champs.
    Tout ce qui suit lit le texte du Déroulé au moment de l'affichage.
    Les cases cochées et le tirage vivent dans leurs propres clés. */
+/* Tournois UNSS : clé annexe, déclarée ici avec les autres pour être connue
+   de CLES_STOCKAGE et donc reprise dans les sauvegardes. */
+var KEY_UNSS = "carnet-eps-unss-v1";
+var VERSION_UNSS = 1;
 var KEY_ETAPES = "carnet-eps-etapes-v1";
 var KEY_TIRAGE = "carnet-eps-tirage-v1";
 var VERSION_ETAPES = 1;
@@ -2404,6 +2461,15 @@ function choisirApsaGroupes(c, actuelle){
 /* ══════════ Vue : liste des classes ══════════ */
 function vueClasses(){
   var h = header("Mes classes", S.classes.length + " classes", false);
+
+  /* L'association sportive n'est pas une classe : elle a sa propre entrée, et
+     son propre décor, pour qu'on ne la confonde jamais avec un cours. */
+  var nbT = lireUnss().tournois.length;
+  h += '<div class="sect"><button class="foot" id="unss">'
+    + '<span class="bal">⚽</span><span class="grow"><span class="t">UNSS Football</span>'
+    + '<span class="s">' + (nbT ? nbT + " tournoi" + (nbT > 1 ? "s" : "") : "Organiser un tournoi")
+    + '</span></span><span class="chev">›</span></button></div>';
+
   h += '<div class="sect"><div class="plist">';
   S.classes.forEach(function(c){
     var els = elevesDe(c.id), ap = apsaEnCours(c.id, AUJ());
@@ -2420,6 +2486,7 @@ function vueClasses(){
   app.innerHTML = h;
   each("[data-c]", function(b){ b.onclick = function(){ go({n:"classe", id:b.dataset.c}); }; });
   on("#newc", function(){ sheetClasse(null); });
+  on("#unss", function(){ go({n:"unss"}); });
 }
 
 /* ══════════ Vue : une classe ══════════ */
@@ -2965,7 +3032,7 @@ function chargerDemo(){
    CLES_STOCKAGE est dérivé de KEY, jamais recopié à la main : si une clé
    est ajoutée un jour, il suffit de l'ajouter ici. */
 var VERSION_SAUVEGARDE = 1;
-var CLES_STOCKAGE = [KEY, KEY_ETAPES, KEY_TIRAGE];
+var CLES_STOCKAGE = [KEY, KEY_ETAPES, KEY_TIRAGE, KEY_UNSS];
 
 function nomFichierSauvegarde(){
   return "carnet-eps-sauvegarde-" + AUJ() + ".json";
@@ -3724,11 +3791,674 @@ function sheetImportEleves(cid){
 }
 
 /* ══════════ Routeur ══════════ */
+
+/* ══════════ UNSS Football ══════════
+   Les équipes n'ont pas de nom : leur couleur de chasuble EST leur nom. Tout
+   l'affichage repose donc sur la pastille de couleur, jamais sur du texte seul. */
+
+var MAILLOTS = [
+  {id:"rouge",  nom:"Rouge",  fond:"#E23B2E", texte:"#FFFFFF"},
+  {id:"bleu",   nom:"Bleu",   fond:"#1D6FD0", texte:"#FFFFFF"},
+  {id:"jaune",  nom:"Jaune",  fond:"#F2C314", texte:"#1A1A1A"},
+  {id:"vert",   nom:"Vert",   fond:"#1F9D55", texte:"#FFFFFF"},
+  {id:"orange", nom:"Orange", fond:"#F07316", texte:"#FFFFFF"},
+  {id:"violet", nom:"Violet", fond:"#7A3FD1", texte:"#FFFFFF"},
+  {id:"rose",   nom:"Rose",   fond:"#E8559A", texte:"#FFFFFF"},
+  {id:"cyan",   nom:"Cyan",   fond:"#17B3C4", texte:"#1A1A1A"},
+  {id:"noir",   nom:"Noir",   fond:"#242424", texte:"#FFFFFF"},
+  {id:"blanc",  nom:"Blanc",  fond:"#FFFFFF", texte:"#1A1A1A"},
+  {id:"gris",   nom:"Gris",   fond:"#8A8F98", texte:"#FFFFFF"},
+  {id:"marron", nom:"Marron", fond:"#7B4B2A", texte:"#FFFFFF"}
+];
+function maillot(id){
+  return MAILLOTS.filter(function(m){ return m.id === id; })[0] || MAILLOTS[0];
+}
+function pastille(m, taille){
+  return '<span class="past" style="width:'+taille+'px;height:'+taille+'px;background:'+m.fond+'"></span>';
+}
+function pastilleEq(t, eqId, taille){
+  var e = equipeDe(t, eqId);
+  if(!e) return '<span class="past" style="width:'+taille+'px;height:'+taille+'px;background:var(--line)"></span>';
+  return pastille(maillot(e.couleur), taille);
+}
+function nomEq(t, eqId){
+  var e = equipeDe(t, eqId);
+  return e ? maillot(e.couleur).nom : "—";
+}
+function equipeDe(t, eqId){
+  return (t.equipes || []).filter(function(e){ return e.id === eqId; })[0] || null;
+}
+
+/* ── Stockage : clé dédiée, versionnée, incluse dans l'export ── */
+function lireUnss(){
+  var o = null;
+  try { o = JSON.parse(localStorage.getItem(KEY_UNSS)); } catch(e){ o = null; }
+  if(!o || typeof o !== "object" || o.version !== VERSION_UNSS) o = {version:VERSION_UNSS, tournois:[]};
+  if(Object.prototype.toString.call(o.tournois) !== "[object Array]") o.tournois = [];
+  return o;
+}
+function ecrireUnss(u){
+  try { localStorage.setItem(KEY_UNSS, JSON.stringify(u)); return true; }
+  catch(e){ toast("Stockage plein : rien n'a été enregistré"); return false; }
+}
+function tournoiById(id){
+  return lireUnss().tournois.filter(function(t){ return t.id === id; })[0] || null;
+}
+function sauverTournoi(t){
+  var u = lireUnss(), i = -1;
+  u.tournois.forEach(function(x, k){ if(x.id === t.id) i = k; });
+  if(i < 0) u.tournois.unshift(t); else u.tournois[i] = t;
+  return ecrireUnss(u);
+}
+
+/* ── Fabrication du calendrier ── */
+
+/* Répartition en serpentin : les poules restent de tailles voisines. */
+function repartirPoules(equipes, nb){
+  var p = [], i;
+  for(i = 0; i < nb; i++) p.push([]);
+  equipes.forEach(function(e, k){ p[k % nb].push(e.id); });
+  return p;
+}
+
+/* Méthode du cercle : à chaque tour, toute équipe joue une fois et une seule.
+   C'est ce qui garantit l'équilibre avant même le réordonnancement. */
+function rondes(ids){
+  var l = ids.slice();
+  if(l.length < 2) return [];
+  if(l.length % 2) l.push(null);          /* équipe fictive : celle qui repose */
+  var n = l.length, tours = [], t, i;
+  for(t = 0; t < n - 1; t++){
+    var tour = [];
+    for(i = 0; i < n / 2; i++){
+      var a = l[i], b = l[n - 1 - i];
+      /* On alterne le sens pour ne pas toujours désigner le même « recevant ». */
+      if(a && b) tour.push(t % 2 ? {a:b, b:a} : {a:a, b:b});
+    }
+    tours.push(tour);
+    l.splice(1, 0, l.pop());              /* la première reste fixe, le reste tourne */
+  }
+  return tours;
+}
+
+function joue(m, id){ return !!id && (m.a === id || m.b === id); }
+
+/* Aucune équipe ne doit enchaîner deux matchs. On avance dans la file et, dès
+   qu'une rencontre ferait rejouer une équipe du match précédent, on va chercher
+   plus loin la première qui ne pose pas ce problème. Si aucune ne convient, on
+   laisse tel quel : mieux vaut un enchaînement qu'un calendrier bancal. */
+function espacer(file){
+  for(var i = 1; i < file.length; i++){
+    var p = file[i - 1];
+    if(!joue(file[i], p.a) && !joue(file[i], p.b)) continue;
+    for(var j = i + 1; j < file.length; j++){
+      if(joue(file[j], p.a) || joue(file[j], p.b)) continue;
+      var m = file.splice(j, 1)[0];
+      file.splice(i, 0, m);
+      break;
+    }
+  }
+  return file;
+}
+
+/* On alterne les poules tour par tour : deux poules donnent A, B, A, B… */
+function ordonnerMatchs(toursParPoule){
+  var file = [], maxT = 0;
+  toursParPoule.forEach(function(tours){ if(tours.length > maxT) maxT = tours.length; });
+  for(var t = 0; t < maxT; t++){
+    toursParPoule.forEach(function(tours, p){
+      (tours[t] || []).forEach(function(m){ file.push({a:m.a, b:m.b, poule:p, tour:t}); });
+    });
+  }
+  return espacer(file);
+}
+
+/* Un arbitre par match : jamais une des deux équipes en jeu, et si possible
+   aucune de celles qui jouent juste avant ou juste après — sinon elles courent
+   du terrain au sifflet sans souffler. À contrainte égale, on prend celle qui a
+   le moins arbitré, pour répartir la charge. */
+function attribuerArbitres(file, ids){
+  var compte = {};
+  ids.forEach(function(id){ compte[id] = 0; });
+  file.forEach(function(m, i){
+    var prec = file[i - 1], suiv = file[i + 1];
+    function libres(strict){
+      return ids.filter(function(id){
+        if(joue(m, id)) return false;
+        if(!strict) return true;
+        if(prec && joue(prec, id)) return false;
+        if(suiv && joue(suiv, id)) return false;
+        return true;
+      });
+    }
+    var c = libres(true);
+    if(!c.length) c = libres(false);
+    if(!c.length){ m.arbitre = null; return; }
+    c.sort(function(x, y){ return compte[x] - compte[y]; });
+    m.arbitre = c[0];
+    compte[c[0]]++;
+  });
+  return file;
+}
+
+function genererTournoi(t){
+  var poules = repartirPoules(t.equipes, t.config.poules);
+  var tours = poules.map(function(p){ return rondes(p); });
+  var ids = t.equipes.map(function(e){ return e.id; });
+  var file = attribuerArbitres(ordonnerMatchs(tours), ids);
+  t.poulesComposition = poules;
+  t.matchs = file.map(function(m, i){
+    return {id:uid(), phase:"poule", poule:m.poule, tour:m.tour, ordre:i + 1,
+            a:m.a, b:m.b, arbitre:m.arbitre, sa:null, sb:null, tab:null};
+  });
+  return t;
+}
+
+/* ── Classement et phase finale ── */
+var PHASES = {poule:"Phase de poules", quarts:"Quarts de finale",
+              demies:"Demi-finales", finale:"Finale"};
+var TAILLES = {quarts:8, demies:4, finale:2};
+var SUITE = {quarts:"demies", demies:"finale", finale:null};
+
+function matchJoue(m){ return m.sa != null && m.sb != null; }
+
+function classementPoule(t, p){
+  var ids = (t.poulesComposition || [])[p] || [], st = {};
+  ids.forEach(function(id){ st[id] = {id:id, j:0, g:0, n:0, pe:0, bp:0, bc:0, pts:0}; });
+  t.matchs.forEach(function(m){
+    if(m.phase !== "poule" || m.poule !== p || !matchJoue(m)) return;
+    var A = st[m.a], B = st[m.b];
+    if(!A || !B) return;
+    A.j++; B.j++;
+    A.bp += m.sa; A.bc += m.sb; B.bp += m.sb; B.bc += m.sa;
+    if(m.sa > m.sb){ A.g++; B.pe++; A.pts += 3; }
+    else if(m.sa < m.sb){ B.g++; A.pe++; B.pts += 3; }
+    else { A.n++; B.n++; A.pts += 1; B.pts += 1; }
+  });
+  return ids.map(function(id){ return st[id]; }).sort(function(x, y){
+    return (y.pts - x.pts) || ((y.bp - y.bc) - (x.bp - x.bc)) || (y.bp - x.bp);
+  });
+}
+
+function poulesTerminees(t){
+  var l = t.matchs.filter(function(m){ return m.phase === "poule"; });
+  return l.length > 0 && l.filter(matchJoue).length === l.length;
+}
+
+/* Qualifiés : d'abord tous les premiers de poule, puis tous les deuxièmes, et
+   à l'intérieur d'un même rang on départage aux points. */
+function qualifies(t, n){
+  var tous = [];
+  (t.poulesComposition || []).forEach(function(_, p){
+    classementPoule(t, p).forEach(function(l, rang){ tous.push({rang:rang, l:l}); });
+  });
+  tous.sort(function(x, y){
+    return (x.rang - y.rang) || (y.l.pts - x.l.pts)
+      || ((y.l.bp - y.l.bc) - (x.l.bp - x.l.bc)) || (y.l.bp - x.l.bp);
+  });
+  return tous.slice(0, n).map(function(x){ return x.l.id; });
+}
+
+function vainqueur(m){
+  if(!matchJoue(m)) return null;
+  if(m.sa > m.sb) return m.a;
+  if(m.sb > m.sa) return m.b;
+  return m.tab === "a" ? m.a : (m.tab === "b" ? m.b : null);
+}
+
+/* Tête de série contre dernier qualifié : 1-8, 2-7, 3-6, 4-5. */
+function apparier(ids){
+  var p = [], n = ids.length, i;
+  for(i = 0; i < n / 2; i++) p.push({a:ids[i], b:ids[n - 1 - i]});
+  return p;
+}
+
+function ajouterTour(t, phase, ids){
+  var paires = apparier(ids);
+  attribuerArbitres(paires, t.equipes.map(function(e){ return e.id; }));
+  var ordre = t.matchs.length;
+  paires.forEach(function(m){
+    t.matchs.push({id:uid(), phase:phase, poule:null, tour:0, ordre:++ordre,
+                   a:m.a, b:m.b, arbitre:m.arbitre, sa:null, sb:null, tab:null});
+  });
+  return t;
+}
+
+function matchsDe(t, phase){
+  return t.matchs.filter(function(m){ return m.phase === phase; });
+}
+
+/* Quelle est la prochaine étape possible ? Renvoie null s'il n'y a rien à
+   lancer : soit les poules ne sont pas finies, soit le tournoi est terminé. */
+function prochaineEtape(t){
+  var fin = t.config.finale;
+  if(!fin || fin === "aucune") return null;
+  if(!matchsDe(t, fin).length){
+    if(!poulesTerminees(t)) return null;
+    return {phase:fin, ids:qualifies(t, Math.min(TAILLES[fin], t.equipes.length))};
+  }
+  var phase = fin;
+  while(phase){
+    var l = matchsDe(t, phase);
+    if(!l.length) return null;
+    var v = l.map(vainqueur);
+    if(v.filter(function(x){ return !!x; }).length !== l.length) return null;
+    var suite = SUITE[phase];
+    if(!suite) return null;
+    if(!matchsDe(t, suite).length) return {phase:suite, ids:v};
+    phase = suite;
+  }
+  return null;
+}
+
+function tournoiFini(t){
+  var f = matchsDe(t, "finale");
+  if(f.length) return !!vainqueur(f[0]);
+  return t.matchs.length > 0 && t.matchs.filter(matchJoue).length === t.matchs.length;
+}
+function championDe(t){
+  var f = matchsDe(t, "finale");
+  if(f.length) return vainqueur(f[0]);
+  if(!poulesTerminees(t)) return null;
+  var q = qualifies(t, 1);
+  return q.length ? q[0] : null;
+}
+/* Prochain match à jouer, dans l'ordre du calendrier. */
+function matchCourant(t){
+  return t.matchs.filter(function(m){ return !matchJoue(m); })[0] || null;
+}
+
+/* ── La roue des couleurs ──
+   Couche fixe par-dessus l'appli, comme le minuteur plein écran : pas de
+   requestFullscreen, capricieux sur tablette. Le tirage est fait AVANT
+   l'animation, puis la roue est tournée pour s'arrêter dessus : ce qui
+   s'affiche est donc exactement ce qui a été tiré. */
+var roue = null;
+
+function secteur(cx, cy, r, a0, a1){
+  var x0 = cx + r * Math.cos(a0), y0 = cy + r * Math.sin(a0);
+  var x1 = cx + r * Math.cos(a1), y1 = cy + r * Math.sin(a1);
+  var grand = (a1 - a0) > Math.PI ? 1 : 0;
+  return "M" + cx + " " + cy
+    + " L" + x0.toFixed(2) + " " + y0.toFixed(2)
+    + " A" + r + " " + r + " 0 " + grand + " 1 " + x1.toFixed(2) + " " + y1.toFixed(2) + " Z";
+}
+
+function fermerRoue(){
+  var d = document.getElementById("roue");
+  if(d) d.remove();
+  roue = null;
+  rendreVeille();
+}
+
+function ouvrirRoue(couleurs, titre){
+  fermerRoue();
+  if(!couleurs.length) return toast("Aucune couleur à tirer");
+  var n = couleurs.length, pas = 360 / n, r = 140;
+  var segs = couleurs.map(function(m, i){
+    var a0 = (-90 + i * pas) * Math.PI / 180;
+    var a1 = (-90 + (i + 1) * pas) * Math.PI / 180;
+    return n === 1
+      ? '<circle cx="150" cy="150" r="'+r+'" fill="'+m.fond+'"></circle>'
+      : '<path d="'+secteur(150, 150, r, a0, a1)+'" fill="'+m.fond+'" stroke="#FFFFFF" stroke-width="2"></path>';
+  }).join("");
+
+  var d = document.createElement("div");
+  d.className = "roue"; d.id = "roue";
+  d.innerHTML = '<button class="roue-x" id="roue-x" aria-label="Fermer">✕</button>'
+    + '<div class="roue-titre">'+esc(titre)+'</div>'
+    + '<svg class="roue-svg" viewBox="0 0 300 300" aria-hidden="true">'
+    + '<g id="roue-g">'+segs+'</g>'
+    + '<circle cx="150" cy="150" r="24" fill="#FFFFFF" stroke="#1A1A1A" stroke-width="2"></circle>'
+    + '<polygon points="150,2 137,36 163,36" fill="#1A1A1A"></polygon></svg>'
+    + '<div class="roue-res" id="roue-res"><span class="muted" style="font-size:22px">Prêt ?</span></div>'
+    + '<button class="btn primary roue-btn" id="roue-go">Lancer la roue</button>';
+  document.body.appendChild(d);
+  roue = {angle:0, tourne:false};
+
+  var g = d.querySelector("#roue-g"), res = d.querySelector("#roue-res");
+  d.querySelector("#roue-x").onclick = fermerRoue;
+  d.querySelector("#roue-go").onclick = function(){
+    if(roue.tourne) return;
+    roue.tourne = true;
+    res.innerHTML = '<span class="muted" style="font-size:22px">…</span>';
+    var i = Math.floor(Math.random() * n);
+    /* Angle qui amène le centre du secteur i sous la flèche du haut. */
+    var cible = ((-(i + 0.5) * pas) % 360 + 360) % 360;
+    roue.angle = roue.angle - (roue.angle % 360) + 360 * 6 + cible;
+    g.style.transition = "transform 3.2s cubic-bezier(.16,.86,.22,1)";
+    g.style.transform = "rotate(" + roue.angle + "deg)";
+    setTimeout(function(){
+      if(!roue) return;
+      roue.tourne = false;
+      var m = couleurs[i];
+      res.innerHTML = pastille(m, 64) + '<span>' + esc(m.nom) + '</span>';
+    }, 3300);
+  };
+  prendreVeille();
+}
+
+/* ── Écran : la rubrique UNSS Football ── */
+function vueUnss(){
+  var u = lireUnss();
+  var h = header("UNSS Football", u.tournois.length
+    ? u.tournois.length + " tournoi" + (u.tournois.length > 1 ? "s" : "")
+    : "Aucun tournoi", true);
+
+  h += '<div class="sect"><button class="btn wide primary" id="newt">+ Organiser un tournoi</button></div>';
+
+  if(!u.tournois.length){
+    h += '<div class="sect"><div class="empty">Crée un tournoi : tu choisis le nombre d\'équipes, '
+      + 'le nombre de poules et la phase finale.<br><br>L\'appli fabrique le calendrier, '
+      + 'répartit les arbitrages et évite qu\'une équipe joue deux fois de suite.</div></div>';
+  } else {
+    h += '<div class="sect"><span class="eyebrow">Tournois</span><div class="plist">';
+    u.tournois.forEach(function(t){
+      var joues = t.matchs.filter(matchJoue).length;
+      var ch = championDe(t);
+      h += '<button class="prow" data-t="'+t.id+'">'
+        + '<span class="avatar" style="background:#0E7A3C;color:#fff">⚽</span>'
+        + '<span class="grow truncate"><span class="nm">'+esc(t.nom)+'</span><br>'
+        + '<span class="meta">'+frDate(t.date)+' · '+t.equipes.length+' équipes · '
+        + joues+'/'+t.matchs.length+' matchs</span></span>'
+        + (ch && tournoiFini(t) ? pastilleEq(t, ch, 22) : '')
+        + '<span class="chev">›</span></button>';
+    });
+    h += '</div></div>';
+  }
+
+  app.innerHTML = h;
+  on("#back", function(){ go({n:"classes"}); });
+  on("#newt", sheetNouveauTournoi);
+  each("[data-t]", function(b){
+    b.onclick = function(){ go({n:"tournoi", id:b.dataset.t}); };
+  });
+}
+
+function sheetNouveauTournoi(){
+  var opts = "";
+  for(var i = 3; i <= 12; i++) opts += '<option value="'+i+'"'+(i===6?" selected":"")+'>'+i+' équipes</option>';
+  ouvrirSheet("Organiser un tournoi",
+    '<label class="field"><span>Nom</span><input type="text" id="nm" value="Tournoi du '+frDate(AUJ())+'"></label>'
+    + '<label class="field"><span>Date</span><input type="date" id="dt" value="'+AUJ()+'"></label>'
+    + '<label class="field"><span>Nombre d\'équipes</span><select id="ne">'+opts+'</select></label>'
+    + '<label class="field"><span>Poules</span><select id="np">'
+    + '<option value="1" selected>1 poule (tout le monde se rencontre)</option>'
+    + '<option value="2">2 poules</option><option value="3">3 poules</option>'
+    + '<option value="4">4 poules</option></select></label>'
+    + '<label class="field"><span>Phase finale</span><select id="pf">'
+    + '<option value="aucune">Aucune — classement seul</option>'
+    + '<option value="finale">Finale (les 2 premiers)</option>'
+    + '<option value="demies" selected>Demi-finales (les 4 premiers)</option>'
+    + '<option value="quarts">Quarts de finale (les 8 premiers)</option></select></label>'
+    + '<label class="field"><span>Durée d\'un match (minutes)</span>'
+    + '<input type="number" id="du" min="2" max="30" value="8"></label>'
+    + '<p class="muted" style="font-size:13px;margin:0">Les couleurs sont attribuées automatiquement. '
+    + 'Tu pourras les changer une par une ensuite.</p>'
+    + '<button class="btn primary wide" id="ok">Créer le tournoi</button>',
+    function(root){
+      root.querySelector("#ok").onclick = function(){
+        var ne = parseInt(root.querySelector("#ne").value, 10);
+        var np = parseInt(root.querySelector("#np").value, 10);
+        var pf = root.querySelector("#pf").value;
+        if(np > Math.floor(ne / 2)){
+          return toast("Trop de poules pour " + ne + " équipes");
+        }
+        if(pf !== "aucune" && TAILLES[pf] > ne){
+          return toast(PHASES[pf] + " : il faut au moins " + TAILLES[pf] + " équipes");
+        }
+        var t = {
+          id:uid(),
+          nom:root.querySelector("#nm").value.trim() || "Tournoi",
+          date:root.querySelector("#dt").value || AUJ(),
+          config:{poules:np, finale:pf,
+                  duree:Math.max(2, Math.min(30, parseInt(root.querySelector("#du").value, 10) || 8))},
+          equipes:MAILLOTS.slice(0, ne).map(function(m){ return {id:uid(), couleur:m.id}; }),
+          matchs:[]
+        };
+        genererTournoi(t);
+        if(!sauverTournoi(t)) return;
+        fermerSheet();
+        go({n:"tournoi", id:t.id});
+        toast(t.matchs.length + " matchs de poule programmés");
+      };
+    });
+}
+
+/* ── Écran : un tournoi ── */
+function vueTournoi(){
+  var t = tournoiById(view.id);
+  if(!t) return go({n:"unss"});
+  var courant = matchCourant(t);
+  var etape = prochaineEtape(t);
+  var ch = tournoiFini(t) ? championDe(t) : null;
+
+  var h = header(t.nom, frDate(t.date) + " · " + t.equipes.length + " équipes", true);
+
+  if(ch){
+    var mc = maillot(equipeDe(t, ch).couleur);
+    h += '<div class="sect"><div class="foot" style="cursor:default">'
+      + '<span class="bal">🏆</span><span class="grow"><span class="t">Vainqueur : '+esc(mc.nom)+'</span>'
+      + '<span class="s">Tournoi terminé</span></span>'+pastille(mc, 34)+'</div></div>';
+  } else if(courant){
+    h += '<div class="sect"><span class="eyebrow">Match en cours</span>'
+      + '<div class="foot" style="cursor:default"><span class="grow">'
+      + '<span class="s">'+esc(PHASES[courant.phase])
+      + (courant.phase === "poule" ? " · poule " + String.fromCharCode(65 + courant.poule) : "")
+      + ' · match '+courant.ordre+'</span>'
+      + '<span class="t" style="display:flex;align-items:center;gap:10px;margin-top:6px">'
+      + pastilleEq(t, courant.a, 30) + esc(nomEq(t, courant.a))
+      + ' <span style="opacity:.7;font-size:14px">contre</span> '
+      + pastilleEq(t, courant.b, 30) + esc(nomEq(t, courant.b)) + '</span>'
+      + '<span class="s" style="margin-top:8px">Arbitre : '
+      + (courant.arbitre ? esc(nomEq(t, courant.arbitre)) : "à désigner") + '</span>'
+      + '</span></div></div>';
+  }
+
+  h += '<div class="sect"><div class="row">'
+    + '<button class="btn grow primary" id="roue">Roue des couleurs</button>'
+    + (courant ? '<button class="btn grow" id="chrono">Chrono '+t.config.duree+' min</button>' : '')
+    + '</div></div>';
+
+  /* Les matchs, groupés par phase, dans l'ordre de passage. */
+  var phases = [];
+  t.matchs.forEach(function(m){ if(phases.indexOf(m.phase) < 0) phases.push(m.phase); });
+  h += '<div class="sect">';
+  phases.forEach(function(ph){
+    h += '<span class="mphase">'+esc(PHASES[ph] || ph)+'</span>';
+    t.matchs.filter(function(m){ return m.phase === ph; }).forEach(function(m){
+      var fini = matchJoue(m);
+      var enc = courant && m.id === courant.id;
+      h += '<button class="mrow'+(enc?" encours":"")+(fini?" finie":"")+'" data-m="'+m.id+'">'
+        + '<span class="mno">'+m.ordre+'</span>'
+        + pastilleEq(t, m.a, 26)
+        + '<span class="msc">'+(fini ? m.sa + " – " + m.sb : "–")+'</span>'
+        + pastilleEq(t, m.b, 26)
+        + '<span class="grow"></span>'
+        + (m.arbitre ? '<span class="marb">arb.'+pastilleEq(t, m.arbitre, 16)+'</span>' : '')
+        + '</button>';
+    });
+  });
+  h += '</div>';
+
+  if(etape){
+    h += '<div class="sect"><button class="btn wide primary" id="etape">'
+      + 'Lancer les ' + esc((PHASES[etape.phase] || "").toLowerCase()) + '</button></div>';
+  }
+
+  /* Classements de poule. */
+  (t.poulesComposition || []).forEach(function(_, p){
+    var cl = classementPoule(t, p);
+    if(!cl.length) return;
+    var nq = t.config.finale !== "aucune"
+      ? Math.ceil(Math.min(TAILLES[t.config.finale] || 0, t.equipes.length) / t.config.poules) : 0;
+    h += '<div class="sect"><span class="eyebrow">Classement · poule '
+      + String.fromCharCode(65 + p) + '</span><table class="clst">'
+      + '<tr><th></th><th>Équipe</th><th class="n">J</th><th class="n">Diff</th><th class="n">Pts</th></tr>';
+    cl.forEach(function(l, i){
+      h += '<tr'+(i < nq ? ' class="qual"' : '')+'><td class="n">'+(i+1)+'</td>'
+        + '<td><span class="row" style="gap:8px">'+pastilleEq(t, l.id, 20)+esc(nomEq(t, l.id))+'</span></td>'
+        + '<td class="n">'+l.j+'</td>'
+        + '<td class="n">'+(l.bp - l.bc > 0 ? "+" : "")+(l.bp - l.bc)+'</td>'
+        + '<td class="n"><b>'+l.pts+'</b></td></tr>';
+    });
+    h += '</table></div>';
+  });
+
+  h += '<div class="sect"><span class="eyebrow">Équipes · touche pour changer la couleur</span>';
+  t.equipes.forEach(function(e){
+    var m = maillot(e.couleur);
+    var arb = t.matchs.filter(function(x){ return x.arbitre === e.id; }).length;
+    h += '<button class="eqrow" data-e="'+e.id+'">'+pastille(m, 34)
+      + '<span class="grow"><span class="nm">'+esc(m.nom)+'</span><br>'
+      + '<span class="meta">arbitre '+arb+' fois</span></span><span class="chev">›</span></button>';
+  });
+  h += '</div>';
+
+  h += '<div class="sect"><div class="row">'
+    + '<button class="btn grow" id="regen">Refaire le calendrier</button>'
+    + '<button class="btn grow danger" id="suppr">Supprimer</button></div></div>';
+
+  app.innerHTML = h;
+  on("#back", function(){ go({n:"unss"}); });
+  on("#roue", function(){
+    ouvrirRoue(t.equipes.map(function(e){ return maillot(e.couleur); }), t.nom);
+  });
+  on("#chrono", function(){
+    ouvrirPlein("unss:" + t.id, 0, "Match " + courant.ordre + " · "
+      + nomEq(t, courant.a) + " – " + nomEq(t, courant.b), t.config.duree);
+    lancerMinuteur("unss:" + t.id, 0, t.config.duree);
+    peindrePlein();
+  });
+  on("#etape", function(){
+    ajouterTour(t, etape.phase, etape.ids);
+    sauverTournoi(t); render();
+    toast(PHASES[etape.phase] + " : calendrier ajouté");
+  });
+  on("#regen", function(){
+    if(t.matchs.filter(matchJoue).length){
+      if(!window.confirm("Tous les scores déjà saisis seront effacés. Continuer ?")) return;
+    }
+    genererTournoi(t); sauverTournoi(t); render();
+    toast("Nouveau calendrier");
+  });
+  on("#suppr", function(){
+    if(!window.confirm("Supprimer « " + t.nom + " » ?")) return;
+    var u = lireUnss();
+    u.tournois = u.tournois.filter(function(x){ return x.id !== t.id; });
+    ecrireUnss(u); go({n:"unss"}); toast("Tournoi supprimé");
+  });
+  each("[data-m]", function(b){ b.onclick = function(){ sheetScore(t.id, b.dataset.m); }; });
+  each("[data-e]", function(b){ b.onclick = function(){ sheetCouleur(t.id, b.dataset.e); }; });
+}
+
+function sheetCouleur(tid, eid){
+  var t = tournoiById(tid);
+  var e = equipeDe(t, eid);
+  if(!e) return;
+  var pris = t.equipes.map(function(x){ return x.couleur; });
+  ouvrirSheet("Couleur de l'équipe",
+    '<div class="row" style="flex-wrap:wrap;gap:10px">'
+    + MAILLOTS.map(function(m){
+        var occupe = pris.indexOf(m.id) >= 0 && m.id !== e.couleur;
+        return '<button class="eqrow" data-k="'+m.id+'" style="width:calc(50% - 5px);margin:0'
+          + (occupe ? ';opacity:.45' : '') + (m.id === e.couleur ? ';border-color:var(--accent);border-width:2px' : '')
+          + '">' + pastille(m, 28) + '<span class="grow"><span class="nm">'+esc(m.nom)+'</span>'
+          + (occupe ? '<br><span class="meta">déjà prise</span>' : '') + '</span></button>';
+      }).join("")
+    + '</div>',
+    function(root){
+      Array.prototype.forEach.call(root.querySelectorAll("[data-k]"), function(b){
+        b.onclick = function(){
+          var k = b.dataset.k;
+          /* Si la couleur est déjà portée, on échange : deux équipes ne peuvent
+             pas jouer en même couleur. */
+          var autre = t.equipes.filter(function(x){ return x.couleur === k && x.id !== eid; })[0];
+          if(autre) autre.couleur = e.couleur;
+          e.couleur = k;
+          sauverTournoi(t); fermerSheet(); render();
+          toast(autre ? "Couleurs échangées" : "Équipe en " + maillot(k).nom.toLowerCase());
+        };
+      });
+    });
+}
+
+function sheetScore(tid, mid){
+  var t = tournoiById(tid);
+  var m = t.matchs.filter(function(x){ return x.id === mid; })[0];
+  if(!m) return;
+  var sa = m.sa == null ? 0 : m.sa, sb = m.sb == null ? 0 : m.sb, tab = m.tab;
+
+  function ligne(cote){
+    var id = cote === "a" ? m.a : m.b, v = cote === "a" ? sa : sb;
+    return '<div class="row" style="gap:10px;align-items:center;margin-bottom:12px">'
+      + pastilleEq(t, id, 38)
+      + '<span class="grow"><b style="font-family:Archivo;font-size:17px">'+esc(nomEq(t, id))+'</b></span>'
+      + '<button class="btn" data-s="'+cote+'" data-d="-1" style="min-width:54px;min-height:54px;font-size:24px" aria-label="Retirer un but">−</button>'
+      + '<b class="num" id="sc-'+cote+'" style="font-size:28px;min-width:44px;text-align:center">'+v+'</b>'
+      + '<button class="btn" data-s="'+cote+'" data-d="1" style="min-width:54px;min-height:54px;font-size:24px" aria-label="Ajouter un but">+</button></div>';
+  }
+  function blocTab(){
+    if(m.phase === "poule" || sa !== sb) return '';
+    return '<div><p class="muted" style="font-size:13px;margin:0 0 8px">'
+      + 'Égalité en '+esc((PHASES[m.phase] || "").toLowerCase())+' : qui passe aux tirs au but ?</p>'
+      + '<div class="row"><button class="btn grow" data-tab="a"'
+      + (tab === "a" ? ' style="border-color:var(--accent);border-width:2px"' : '') + '>'
+      + esc(nomEq(t, m.a))+'</button>'
+      + '<button class="btn grow" data-tab="b"'
+      + (tab === "b" ? ' style="border-color:var(--accent);border-width:2px"' : '') + '>'
+      + esc(nomEq(t, m.b))+'</button></div></div>';
+  }
+
+  ouvrirSheet("Match " + m.ordre + " · " + (PHASES[m.phase] || ""),
+    '<div>' + ligne("a") + ligne("b") + '</div>'
+    + '<div id="tw">' + blocTab() + '</div>'
+    + '<p class="muted" style="font-size:13px;margin:0">Arbitre : <b>'
+    + (m.arbitre ? esc(nomEq(t, m.arbitre)) : "à désigner") + '</b></p>'
+    + '<button class="btn primary wide" id="ok">Enregistrer le score</button>'
+    + (matchJoue(m) ? '<button class="btn wide ghost" id="eff">Effacer le score</button>' : ''),
+    function(root){
+      function brancherTab(){
+        Array.prototype.forEach.call(root.querySelectorAll("[data-tab]"), function(b){
+          b.onclick = function(){ tab = b.dataset.tab; maj(); };
+        });
+      }
+      function maj(){
+        root.querySelector("#sc-a").textContent = sa;
+        root.querySelector("#sc-b").textContent = sb;
+        root.querySelector("#tw").innerHTML = blocTab();
+        brancherTab();
+      }
+      Array.prototype.forEach.call(root.querySelectorAll("[data-s]"), function(b){
+        b.onclick = function(){
+          var d = parseInt(b.dataset.d, 10);
+          if(b.dataset.s === "a") sa = Math.max(0, sa + d); else sb = Math.max(0, sb + d);
+          if(sa !== sb) tab = null;
+          maj();
+        };
+      });
+      brancherTab();
+      root.querySelector("#ok").onclick = function(){
+        if(m.phase !== "poule" && sa === sb && !tab){
+          return toast("Désigne l'équipe qui gagne aux tirs au but");
+        }
+        m.sa = sa; m.sb = sb; m.tab = sa === sb ? tab : null;
+        sauverTournoi(t); fermerSheet(); render(); toast("Score enregistré");
+      };
+      var eff = root.querySelector("#eff");
+      if(eff) eff.onclick = function(){
+        m.sa = null; m.sb = null; m.tab = null;
+        sauverTournoi(t); fermerSheet(); render(); toast("Score effacé");
+      };
+    });
+}
+
 var VUES = {jour:vueJour, seance:vueSeance, cycle:vueCycle, groupes:vueGroupes,
             classes:vueClasses, classe:vueClasse, rappels:vueRappels,
             docs:vueDocs, doc:vueDoc,
             eleves:vueEleves, eleve:vueEleve, dispenses:vueDispenses,
-            atelier:vueAtelier, reglages:vueReglages};
+            atelier:vueAtelier, reglages:vueReglages,
+            unss:vueUnss, tournoi:vueTournoi};
 function render(){
   renderNav();
   (VUES[view.n] || vueJour)();
