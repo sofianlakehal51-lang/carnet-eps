@@ -540,7 +540,7 @@ body.avec-chrono .top h1{padding-right:92px}
 /* Numéro de version affiché dans les Réglages. À garder identique à VERSION
    dans sw.js : c'est le seul moyen de savoir ce que la tablette exécute
    vraiment quand une mise à jour semble ne pas être arrivée. */
-var BUILD = "v11";
+var BUILD = "v12";
 
 var KEY = "carnet-eps-v1";
 function uid(){ return Math.random().toString(36).slice(2,10); }
@@ -1090,6 +1090,37 @@ function toast(msg){
 function go(v){ view = v; window.scrollTo(0,0); render(); }
 function on(sel, fn){ var el = app.querySelector(sel); if(el) el.onclick = fn; }
 function each(sel, fn){ Array.prototype.forEach.call(app.querySelectorAll(sel), fn); }
+
+/* ── Bouton « précédent » de la tablette ──
+   L'appli tient sur une seule page : sans rien faire, « précédent » la quitte,
+   y compris quand une couche est ouverte par-dessus — minuteur en grand, roue,
+   feuille de saisie. On empile donc une entrée d'historique par couche ouverte.
+   « Précédent » consomme cette entrée et referme la couche au lieu de sortir.
+   Quand plus rien n'est ouvert, « précédent » quitte l'appli, comme attendu. */
+var couches = [];
+var rendEntree = false;
+
+function ouvrirCouche(nom, fermer){
+  couches.push({nom:nom, fermer:fermer});
+  try { history.pushState({couche:nom}, ""); } catch(e){}
+}
+/* Fermeture déclenchée par l'appli (croix, validation, Échap) : on retire la
+   couche, puis on rend l'entrée d'historique qu'elle avait empilée. */
+function fermerCouche(nom){
+  for(var i = couches.length - 1; i >= 0; i--){
+    if(couches[i].nom !== nom) continue;
+    couches.splice(i, 1);
+    rendEntree = true;
+    try { history.back(); } catch(e){ rendEntree = false; }
+    return;
+  }
+}
+window.addEventListener("popstate", function(){
+  /* Retour que nous avons nous-mêmes provoqué : la couche est déjà fermée. */
+  if(rendEntree){ rendEntree = false; return; }
+  var c = couches.pop();
+  if(c) c.fermer();
+});
 
 /* ══════════ Barre de navigation ══════════ */
 var ICONS = {
@@ -1807,15 +1838,23 @@ function peindrePlein(){
     b.className = marche ? "" : "primaire";
   }
 }
-function fermerPlein(){
+/* Retire l'affichage, sans toucher à l'historique : c'est ce que le bouton
+   « précédent » appelle une fois qu'il a consommé l'entrée de la couche. */
+function retirerPlein(){
   var el = document.getElementById("plein");
   if(el) el.parentNode.removeChild(el);
   plein = null;
   rendreVeille();
   peindrePastille();
 }
+function fermerPlein(){
+  if(!plein) return;
+  fermerCouche("plein");
+  retirerPlein();
+}
 function ouvrirPlein(cle, i, titre, minutes){
-  fermerPlein();
+  var deja = !!plein;
+  retirerPlein();
   plein = {cle:cle, i:i, titre:titre, minutes:minutes};
   var d = document.createElement("div");
   d.className = "plein";
@@ -1839,6 +1878,7 @@ function ouvrirPlein(cle, i, titre, minutes){
   prendreVeille();
   peindrePlein();
   peindrePastille();
+  if(!deja) ouvrirCouche("plein", retirerPlein);
 }
 
 /* ── Tirage au sort ──
@@ -3347,7 +3387,8 @@ function sheetCollerSauvegarde(){
 
 /* ══════════ Feuilles de saisie ══════════ */
 function ouvrirSheet(titre, html, init){
-  fermerSheet();
+  var deja = !!sheet;
+  retirerSheet();
   var s = document.createElement("div");
   s.className = "scrim"; s.setAttribute("role","dialog"); s.setAttribute("aria-modal","true");
   s.innerHTML = '<div class="sheet"><div class="row" style="margin-bottom:14px">'
@@ -3362,8 +3403,14 @@ function ouvrirSheet(titre, html, init){
   if(init) init(c);
   var f = c.querySelector("input,textarea,select");
   if(f) setTimeout(function(){ f.focus(); }, 80);
+  if(!deja) ouvrirCouche("sheet", retirerSheet);
 }
-function fermerSheet(){ if(sheet){ sheet.remove(); sheet = null; } }
+function retirerSheet(){ if(sheet){ sheet.remove(); sheet = null; } }
+function fermerSheet(){
+  if(!sheet) return;
+  fermerCouche("sheet");
+  retirerSheet();
+}
 document.addEventListener("keydown", function(e){ if(e.key === "Escape") fermerSheet(); });
 
 function sheetRemarque(eid, date, type){
@@ -4191,15 +4238,21 @@ function secteur(cx, cy, r, a0, a1){
     + " A" + r + " " + r + " 0 " + grand + " 1 " + x1.toFixed(2) + " " + y1.toFixed(2) + " Z";
 }
 
-function fermerRoue(){
+function retirerRoue(){
   var d = document.getElementById("roue");
   if(d) d.remove();
   roue = null;
   rendreVeille();
 }
+function fermerRoue(){
+  if(!roue) return;
+  fermerCouche("roue");
+  retirerRoue();
+}
 
 function ouvrirRoue(couleurs, titre){
-  fermerRoue();
+  var deja = !!roue;
+  retirerRoue();
   if(!couleurs.length) return toast("Aucune couleur à tirer");
   var n = couleurs.length, pas = 360 / n, r = 140;
   var segs = couleurs.map(function(m, i){
@@ -4243,6 +4296,7 @@ function ouvrirRoue(couleurs, titre){
     }, 3300);
   };
   prendreVeille();
+  if(!deja) ouvrirCouche("roue", retirerRoue);
 }
 
 /* ── Écran : la rubrique UNSS Football ── */
