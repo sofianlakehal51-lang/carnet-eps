@@ -540,7 +540,7 @@ body.avec-chrono .top h1{padding-right:92px}
 /* Numéro de version affiché dans les Réglages. À garder identique à VERSION
    dans sw.js : c'est le seul moyen de savoir ce que la tablette exécute
    vraiment quand une mise à jour semble ne pas être arrivée. */
-var BUILD = "v12";
+var BUILD = "v13";
 
 var KEY = "carnet-eps-v1";
 function uid(){ return Math.random().toString(36).slice(2,10); }
@@ -584,6 +584,41 @@ function styleClasse(nom){
 var SLOTS = {"M1-M2":"08h–10h", "M3-M4":"10h–12h", "S1-S2":"14h–16h", "S3-S4":"16h–18h"};
 var ORDRE_SLOT = ["M1-M2","M3-M4","S1-S2","S3-S4"];
 var JOURS = ["lundi","mardi","mercredi","jeudi","vendredi"];
+
+/* ── Calendrier scolaire 2026-2027, transcrit de la programmation du collège ──
+   Sans ces dates, un cycle qui traverse des vacances voit l'appli compter des
+   séances qui n'ont jamais eu lieu, et toute la numérotation dérive : le cycle 1
+   des 5e comptait 15 séances au lieu de 11.
+
+   « fin » est le JOUR DE REPRISE, donc exclu des vacances. La programmation le
+   confirme : les vacances de février se terminent le 08/03 et le cycle 3 des
+   6e/4e/3e démarre le 08/03. Toutes les dates de fin tombent un lundi.
+
+   Ce sont des dates publiques d'établissement, pas des données d'élèves : elles
+   ont leur place dans le code, au même titre que l'emploi du temps. */
+var VACANCES = [
+  {nom:"Vacances de la Toussaint", debut:"2026-10-18", fin:"2026-11-02"},
+  {nom:"Vacances de Noël",         debut:"2026-12-19", fin:"2027-01-04"},
+  {nom:"Vacances d'hiver",         debut:"2027-02-20", fin:"2027-03-08"},
+  {nom:"Vacances de printemps",    debut:"2027-04-17", fin:"2027-05-03"},
+  {nom:"Pont de l'Ascension",      debut:"2027-05-06", fin:"2027-05-10"}
+];
+var FERIES = [
+  {nom:"Armistice",          date:"2026-11-11"},
+  {nom:"Lundi de Pâques",    date:"2027-03-29"},
+  {nom:"Lundi de Pentecôte", date:"2027-05-17"}
+];
+/* Renvoie le nom de la période si la date est chômée, sinon null. */
+function vacancesDe(date){
+  var i;
+  for(i = 0; i < VACANCES.length; i++){
+    if(date >= VACANCES[i].debut && date < VACANCES[i].fin) return VACANCES[i].nom;
+  }
+  for(i = 0; i < FERIES.length; i++){
+    if(date === FERIES[i].date) return FERIES[i].nom;
+  }
+  return null;
+}
 
 /* Aucune liste d'élève n'est écrite dans le code : ce fichier est publié sur
    un dépôt public, et les noms d'élèves sont des données personnelles de
@@ -900,6 +935,9 @@ function exceptionsDuJour(date){
     .sort(function(a,b){ return ORDRE_SLOT.indexOf(a.slot) - ORDRE_SLOT.indexOf(b.slot); });
 }
 function coursDuJour(date){
+  /* Pas de cours pendant les vacances : c est ici qu il faut le dire, car
+     l affichage du jour et le comptage des seances passent tous deux par la. */
+  if(vacancesDe(date)) return [];
   var d = new Date(date+"T12:00:00"), j = d.getDay();
   var par = semaineISO(d) % 2 === 1 ? "A" : "B";
   return EDT.filter(function(c){ return c.jour===j && (!c.variante || c.variante===par); })
@@ -1177,6 +1215,13 @@ function vueJour(){
   if(rapJour.length){
     h += '<div class="sect"><span class="eyebrow">À ne pas oublier</span><div class="stack" style="gap:8px">'
       + rapJour.map(ligneRappel).join("") + '</div></div>';
+  }
+
+  var vac = vacancesDe(date);
+  if(vac){
+    h += '<div class="sect"><div class="card" style="padding:16px;text-align:center">'
+      + '<span class="badge b-accent">'+esc(vac)+'</span>'
+      + '<p class="muted" style="font-size:13px;margin:10px 0 0">Pas de cours : ces journées ne comptent pas dans tes cycles.</p></div></div>';
   }
 
   var excep = exceptionsDuJour(date);
