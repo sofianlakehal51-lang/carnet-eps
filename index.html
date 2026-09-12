@@ -540,7 +540,7 @@ body.avec-chrono .top h1{padding-right:92px}
 /* Numéro de version affiché dans les Réglages. À garder identique à VERSION
    dans sw.js : c'est le seul moyen de savoir ce que la tablette exécute
    vraiment quand une mise à jour semble ne pas être arrivée. */
-var BUILD = "v13";
+var BUILD = "v14";
 
 var KEY = "carnet-eps-v1";
 function uid(){ return Math.random().toString(36).slice(2,10); }
@@ -581,8 +581,24 @@ function styleClasse(nom){
   return ' style="--c:' + c[0] + ';--cs:' + c[1] + '"';
 }
 
-var SLOTS = {"M1-M2":"08h–10h", "M3-M4":"10h–12h", "S1-S2":"14h–16h", "S3-S4":"16h–18h"};
+/* L'après-midi commence à 13h30 en EPS, pas à 14h. Seul S1-S2 sert dans
+   l'emploi du temps ; S3-S4 n'existe que pour les cours exceptionnels et suit
+   le même découpage de deux heures. */
+var SLOTS = {"M1-M2":"08h–10h", "M3-M4":"10h–12h", "S1-S2":"13h30–15h30", "S3-S4":"15h30–17h30"};
 var ORDRE_SLOT = ["M1-M2","M3-M4","S1-S2","S3-S4"];
+
+/* Association sportive : créneaux hebdomadaires qui ne sont pas des cours de
+   classe. Ils s affichent dans la journée mais ne comptent jamais comme séance
+   de cycle — il n y a pas de classe derrière, seulement des licenciés.
+   « rang » place le créneau dans la journée : 1.5 = entre M3-M4 et S1-S2. */
+var AS = [
+  {jour:3, rang:1.5, horaire:"12h45–14h15", nom:"UNSS Futsal"}
+];
+function asDuJour(date){
+  if(vacancesDe(date)) return [];
+  var j = new Date(date+"T12:00:00").getDay();
+  return AS.filter(function(a){ return a.jour === j; });
+}
 var JOURS = ["lundi","mardi","mercredi","jeudi","vendredi"];
 
 /* ── Calendrier scolaire 2026-2027, transcrit de la programmation du collège ──
@@ -1227,13 +1243,22 @@ function vueJour(){
   var excep = exceptionsDuJour(date);
   /* Cours habituels et créneaux exceptionnels sont mélangés dans l'ordre horaire :
      c'est la journée réelle qu'il faut lire d'un coup d'œil, pas deux listes. */
-  var agenda = cours.map(function(c){ return {slot:c.slot, cours:c}; })
-    .concat(excep.map(function(x){ return {slot:x.slot, excep:x}; }))
-    .sort(function(a,b){ return ORDRE_SLOT.indexOf(a.slot) - ORDRE_SLOT.indexOf(b.slot); });
+  var agenda = cours.map(function(c){ return {rang:ORDRE_SLOT.indexOf(c.slot), cours:c}; })
+    .concat(excep.map(function(x){ return {rang:ORDRE_SLOT.indexOf(x.slot), excep:x}; }))
+    .concat(asDuJour(date).map(function(a){ return {rang:a.rang, as:a}; }))
+    .sort(function(a,b){ return a.rang - b.rang; });
 
   h += '<div class="sect"><div class="stack">';
   if(!agenda.length) h += '<div class="empty">Pas de cours d\'EPS ce jour-là.</div>';
   agenda.forEach(function(it){
+    if(it.as){
+      h += '<button class="course" data-as="1" style="--c:#0E7A3C;--cs:#E6F4EC">'
+        + '<span class="slot"><b>AS</b><span>'+esc(it.as.horaire)+'</span></span>'
+        + '<span class="grow truncate"><span class="nm">'+esc(it.as.nom)+'</span><br>'
+        + '<span class="meta">Association sportive · hors cycle</span></span>'
+        + '<span class="chev">›</span></button>';
+      return;
+    }
     if(it.excep){
       var x = it.excep;
       h += '<button class="course" data-exc="'+x.id+'" style="--c:#8A6508;--cs:#FBF0D2">'
@@ -1283,6 +1308,7 @@ function vueJour(){
 
   app.innerHTML = h;
   function dec(n){ var x = new Date(date+"T12:00:00"); x.setDate(x.getDate()+n); go({n:"jour", date:iso(x)}); }
+  on("[data-as]", function(){ go({n:"unss"}); });
   on("#prevj", function(){ dec(-1); });
   on("#nextj", function(){ dec(1); });
   on("#auj",   function(){ go({n:"jour", date:AUJ()}); });

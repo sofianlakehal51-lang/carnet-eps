@@ -4,7 +4,7 @@
 
    À chaque mise à jour de l'appli, changer VERSION ci-dessous : l'ancien cache
    est alors supprimé et la nouvelle version est téléchargée. */
-var VERSION = "carnet-eps-v13";
+var VERSION = "carnet-eps-v14";
 var COQUILLE = [
   "./",
   "./index.html",
