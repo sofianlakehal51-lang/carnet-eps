@@ -540,7 +540,7 @@ body.avec-chrono .top h1{padding-right:92px}
 /* Numéro de version affiché dans les Réglages. À garder identique à VERSION
    dans sw.js : c'est le seul moyen de savoir ce que la tablette exécute
    vraiment quand une mise à jour semble ne pas être arrivée. */
-var BUILD = "v14";
+var BUILD = "v15";
 
 var KEY = "carnet-eps-v1";
 function uid(){ return Math.random().toString(36).slice(2,10); }
@@ -1227,7 +1227,9 @@ function vueJour(){
     + '<button class="btn sm grow" id="auj">Aujourd\'hui</button>'
     + '<button class="btn sm" id="nextj">Lendemain ›</button></div>';
 
-  var rapJour = rappelsDuJour(date).concat(date === AUJ() ? rappelsEnRetard(date) : []);
+  /* Les événements ont leur carte dans l agenda : inutile de les répéter ici. */
+  var rapJour = rappelsDuJour(date).filter(function(r){ return !r.type; })
+    .concat(date === AUJ() ? rappelsEnRetard(date) : []);
   if(rapJour.length){
     h += '<div class="sect"><span class="eyebrow">À ne pas oublier</span><div class="stack" style="gap:8px">'
       + rapJour.map(ligneRappel).join("") + '</div></div>';
@@ -1246,11 +1248,21 @@ function vueJour(){
   var agenda = cours.map(function(c){ return {rang:ORDRE_SLOT.indexOf(c.slot), cours:c}; })
     .concat(excep.map(function(x){ return {rang:ORDRE_SLOT.indexOf(x.slot), excep:x}; }))
     .concat(asDuJour(date).map(function(a){ return {rang:a.rang, as:a}; }))
+    .concat(evenementsDuJour(date).map(function(e){ return {rang:-1, ev:e}; }))
     .sort(function(a,b){ return a.rang - b.rang; });
 
   h += '<div class="sect"><div class="stack">';
   if(!agenda.length) h += '<div class="empty">Pas de cours d\'EPS ce jour-là.</div>';
   agenda.forEach(function(it){
+    if(it.ev){
+      var te = typeRappel(it.ev);
+      h += '<button class="course" data-ev="'+it.ev.id+'" style="--c:'+te.c+';--cs:'+te.cs+'">'
+        + '<span class="slot"><b>'+te.court+'</b><span>'+esc(te.nom.toLowerCase())+'</span></span>'
+        + '<span class="grow truncate"><span class="nm">'+esc(it.ev.titre)+'</span><br>'
+        + '<span class="meta">'+esc(it.ev.note || "Hors cours")+'</span></span>'
+        + '<span class="chev">›</span></button>';
+      return;
+    }
     if(it.as){
       h += '<button class="course" data-as="1" style="--c:#0E7A3C;--cs:#E6F4EC">'
         + '<span class="slot"><b>AS</b><span>'+esc(it.as.horaire)+'</span></span>'
@@ -1309,6 +1321,7 @@ function vueJour(){
   app.innerHTML = h;
   function dec(n){ var x = new Date(date+"T12:00:00"); x.setDate(x.getDate()+n); go({n:"jour", date:iso(x)}); }
   on("[data-as]", function(){ go({n:"unss"}); });
+  each("[data-ev]", function(b){ b.onclick = function(){ sheetRappel(b.dataset.ev); }; });
   on("#prevj", function(){ dec(-1); });
   on("#nextj", function(){ dec(1); });
   on("#auj",   function(){ go({n:"jour", date:AUJ()}); });
@@ -2259,7 +2272,27 @@ function rappelsTries(){
     return a.date.localeCompare(b.date) || a.id.localeCompare(b.id);
   });
 }
+/* Un rappel peut être un simple pense-bête ou un événement daté qui mérite sa
+   place dans la journée : compétition, réunion, sortie. Le champ est ajouté
+   sans migration — un rappel sans type reste un pense-bête, comme avant. */
+var TYPES_RAPPEL = [
+  {cle:"",            nom:"Rappel",      court:"",  c:"",        cs:""},
+  {cle:"competition", nom:"Compétition", court:"C", c:"#0E7A3C", cs:"#E6F4EC"},
+  {cle:"reunion",     nom:"Réunion",     court:"R", c:"#6B45D9", cs:"#EBE4FC"},
+  {cle:"sortie",      nom:"Sortie",      court:"S", c:"#C2600B", cs:"#FCEEDD"}
+];
+function typeRappel(r){
+  var t = (r && r.type) || "";
+  for(var i = 0; i < TYPES_RAPPEL.length; i++){
+    if(TYPES_RAPPEL[i].cle === t) return TYPES_RAPPEL[i];
+  }
+  return TYPES_RAPPEL[0];
+}
 function rappelsActifs(){ return rappelsTries().filter(function(r){ return !r.fait; }); }
+/* Événements du jour : ce sont eux qui s affichent en couleur dans l agenda. */
+function evenementsDuJour(date){
+  return rappelsActifs().filter(function(r){ return r.date === date && r.type; });
+}
 function rappelsDuJour(date){
   return rappelsActifs().filter(function(r){ return r.date === date; });
 }
@@ -2288,6 +2321,8 @@ function ligneRappel(r){
     + '<b>'+esc(r.titre)+'</b><br>'
     + '<span class="meta num">'+frDate(r.date)+'</span> '
     + '<span class="badge '+e.cls+'">'+e.txt+'</span>'
+    + (function(){ var t = typeRappel(r); return t.cle
+        ? ' <span class="badge" style="background:'+t.cs+';color:'+t.c+'">'+esc(t.nom)+'</span>' : ''; })()
     + (cl ? ' <span class="badge b-classe"'+styleClasse(cl.nom)+'>'+esc(cl.nom)+'</span>' : '')
     + (r.note ? '<span class="rnote">'+esc(r.note)+'</span>' : '')
     + '</button></div>';
@@ -2295,14 +2330,28 @@ function ligneRappel(r){
 
 function vueRappels(){
   var auj = AUJ();
-  var actifs = rappelsActifs();
+  var tous = rappelsActifs();
+  /* Filtre par type : voir dun coup tout ce qui nest pas un cours. */
+  var ft = view.ftype || "";
+  var actifs = ft ? tous.filter(function(r){ return (r.type||"") === ft; }) : tous;
   var retard = actifs.filter(function(r){ return r.date < auj; });
   var jour   = actifs.filter(function(r){ return r.date === auj; });
   var semaine = actifs.filter(function(r){ return r.date > auj && joursAvant(r.date) <= 7; });
   var suite  = actifs.filter(function(r){ return joursAvant(r.date) > 7; });
   var faits  = rappelsTries().filter(function(r){ return r.fait; }).reverse();
 
-  var h = header("Rappels", actifs.length + " à venir", false);
+  var h = header("Rappels", tous.length + " à venir", false);
+  var compte = {};
+  tous.forEach(function(r){ var k = r.type || ""; compte[k] = (compte[k]||0) + 1; });
+  h += '<div class="sect"><div class="chipbar">'
+    + '<button class="chip" data-ft="_tous" aria-pressed="'+(!ft)+'">Tout ('+tous.length+')</button>'
+    + TYPES_RAPPEL.map(function(t){
+        if(!compte[t.cle]) return "";
+        return '<button class="chip" data-ft="'+t.cle+'" aria-pressed="'+(ft===t.cle)+'"'
+          + (t.cle ? ' style="background:'+t.cs+';color:'+t.c+'"' : '')
+          + '>'+esc(t.nom)+' ('+compte[t.cle]+')</button>';
+      }).join("")
+    + '</div></div>';
   h += '<div class="sect"><div class="stack" style="gap:8px">'
     + '<button class="btn primary wide" id="addr">+ Nouveau rappel</button>'
     + '<div class="row"><button class="btn sm grow" id="coller">Coller un mail</button>'
@@ -2318,7 +2367,10 @@ function vueRappels(){
   h += bloc("Cette semaine", semaine);
   h += bloc("Plus tard", suite);
 
-  if(!actifs.length){
+  if(!actifs.length && ft){
+    h += '<div class="sect"><div class="empty">Rien de ce type pour le moment.</div></div>';
+  }
+  if(!tous.length){
     h += '<div class="sect"><div class="empty">Aucun rappel en attente.<br>'
       + 'Note ici tout ce qui a une date : réunion parents, remise des notes, sortie, conseil de classe, brevet blanc…</div></div>';
   }
@@ -2345,6 +2397,12 @@ function vueRappels(){
     };
   });
   each("[data-red]", function(b){ b.onclick = function(){ sheetRappel(b.dataset.red); }; });
+  each("[data-ft]", function(b){
+    b.onclick = function(){
+      view.ftype = b.dataset.ft === "_tous" ? null : b.dataset.ft;
+      render();
+    };
+  });
 }
 
 /* ── Extraction des dates d'un mail collé ── */
@@ -2485,6 +2543,12 @@ function sheetRappel(id){
   }).join("");
   ouvrirSheet(r ? "Modifier le rappel" : "Nouveau rappel",
     '<label class="field"><span>Quoi ?</span><input type="text" id="ti" value="'+(r?esc(r.titre):"")+'" placeholder="Ex. : rendre les notes du trimestre"></label>'
+    + '<label class="field"><span>Type</span><select id="ty">'
+    + TYPES_RAPPEL.map(function(t){
+        return '<option value="'+t.cle+'"'+((r && (r.type||"") === t.cle) ? " selected" : "")+'>'
+          + esc(t.nom) + (t.cle ? " — visible en couleur dans la journée" : " — simple pense-bête") + '</option>';
+      }).join("")
+    + '</select></label>'
     + '<label class="field"><span>Quand ?</span><input type="date" id="dt" value="'+(r?r.date:AUJ())+'"></label>'
     + '<label class="field"><span>Classe concernée</span><select id="cl">'+opts+'</select></label>'
     + '<label class="field"><span>Précisions</span><textarea id="no" style="min-height:80px" placeholder="Facultatif">'+(r?esc(r.note||""):"")+'</textarea></label>'
@@ -2497,12 +2561,14 @@ function sheetRappel(id){
         if(!ti) return toast("Écris ce qu'il ne faut pas oublier");
         if(!dt) return toast("Choisis une date");
         var maj = {titre:ti, date:dt, classeId:root.querySelector("#cl").value || null,
+                   type:root.querySelector("#ty").value || null,
                    note:root.querySelector("#no").value.trim()};
-        if(r){ r.titre = maj.titre; r.date = maj.date; r.classeId = maj.classeId; r.note = maj.note; }
+        if(r){ r.titre = maj.titre; r.date = maj.date; r.classeId = maj.classeId;
+               r.type = maj.type; r.note = maj.note; }
         else {
           if(!S.rappels) S.rappels = [];
           S.rappels.push({id:uid(), titre:maj.titre, date:maj.date, classeId:maj.classeId,
-                          note:maj.note, fait:false});
+                          type:maj.type, note:maj.note, fait:false});
         }
         save(); fermerSheet(); render(); toast("Rappel enregistré");
       };
