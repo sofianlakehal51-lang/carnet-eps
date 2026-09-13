@@ -548,6 +548,13 @@ body.avec-chrono .top h1{padding-right:92px}
 .rel.abs{opacity:.45}
 .rel .badge{font-size:12px}
 .rel.choix{border-left:6px solid var(--c)}
+/* Absents signalés depuis la feuille de création de groupes. */
+.abs-g{display:grid;grid-template-columns:repeat(2,1fr);gap:6px}
+.abs-b{display:flex;align-items:center;gap:6px;min-height:44px;padding:4px 8px;border:1px solid var(--line);
+  border-radius:10px;background:var(--surface);color:var(--ink);font-size:14px;font-weight:600;text-align:left;min-width:0}
+.abs-b.on{background:var(--alert-soft);border-color:var(--alert)}
+.abs-b[disabled]{opacity:.6}
+.abs-b .badge{font-size:11px}
 </style>
 </head>
 <body>
@@ -561,7 +568,7 @@ body.avec-chrono .top h1{padding-right:92px}
 /* Numéro de version affiché dans les Réglages. À garder identique à VERSION
    dans sw.js : c'est le seul moyen de savoir ce que la tablette exécute
    vraiment quand une mise à jour semble ne pas être arrivée. */
-var BUILD = "v16";
+var BUILD = "v17";
 
 var KEY = "carnet-eps-v1";
 function uid(){ return Math.random().toString(36).slice(2,10); }
@@ -2216,15 +2223,42 @@ function repartitionsHTML(cle, els, date){
 function sheetCreerGroupes(ap, sq, els, date, cle){
   var l = repartitionsDe(cle), nb = 4;
   var prec = repartitionsPrecedentes(ap, sq);
-  var presents = els.filter(function(e){ return !exclusDuTirage(e, date); }).length;
+  function compterPresents(){ return els.filter(function(e){ return !exclusDuTirage(e, date); }).length; }
+  var presents = compterPresents();
   var grille = "", i;
   for(i = 2; i <= 8; i++) grille += '<button class="btn nb' + (i === nb ? ' sel' : '') + '" data-rnb="' + i + '">' + i + '</button>';
 
   function info(){
+    presents = compterPresents();
     var exclus = els.length - presents;
     return presents + ' élève' + (presents > 1 ? 's' : '') + ' présent' + (presents > 1 ? 's' : '')
       + (exclus ? ' · ' + exclus + ' absent' + (exclus > 1 ? 's' : '') + ' ou dispensé' + (exclus > 1 ? 's' : '') : '')
       + '<br>Au hasard : groupes de <b class="num">' + tailles(presents, nb).join(' · ') + '</b>';
+  }
+  /* Signaler les absents sans quitter la feuille : c'est la même absence que
+     le bouton de l'appel, enregistrée pour la date de la séance. Un dispensé
+     l'est par son justificatif : il ne se décoche pas ici. */
+  function listeAbsents(){
+    return els.map(function(e){
+      var m = motifExclusion(e, date);
+      return '<button class="abs-b' + (m ? ' on' : '') + '" data-rabs="' + e.id + '"' + (m === 'dispensé' ? ' disabled' : '') + '>'
+        + '<span class="grow truncate">' + esc(nomEleveRep(e)) + '</span>'
+        + '<span class="badge ' + (m ? 'b-alert' : 'b-quiet') + '">' + (m || 'présent') + '</span></button>';
+    }).join('');
+  }
+  function brancherAbsents(root){
+    Array.prototype.forEach.call(root.querySelectorAll('[data-rabs]'), function(b){
+      b.onclick = function(){
+        var eid = b.dataset.rabs, i = -1;
+        S.events.forEach(function(x, k){ if(x.eleveId === eid && x.date === date && x.type === 'absent') i = k; });
+        if(i >= 0) S.events.splice(i, 1);
+        else S.events.push({id:uid(), eleveId:eid, type:'absent', date:date, texte:''});
+        save(); render();
+        root.querySelector('#rabsl').innerHTML = listeAbsents();
+        root.querySelector('#rinfo').innerHTML = info();
+        brancherAbsents(root);
+      };
+    });
   }
   function creer(root, affect){
     var nom = root.querySelector("#rnom").value.trim() || nomRepartitionLibre(l);
@@ -2241,6 +2275,8 @@ function sheetCreerGroupes(ap, sq, els, date, cle){
     + '<input type="text" id="rnom" value="' + esc(nomRepartitionLibre(l)) + '"></label>'
     + '<span class="eyebrow" style="color:var(--ink-3)">Nombre de groupes</span>'
     + '<div class="nbgrille" style="grid-template-columns:repeat(7,1fr)">' + grille + '</div>'
+    + '<span class="eyebrow" style="color:var(--ink-3)">Absents · touche un élève pour le signaler</span>'
+    + '<div class="abs-g" id="rabsl">' + listeAbsents() + '</div>'
     + '<p class="muted" id="rinfo" style="margin:0;font-size:13px">' + info() + '</p>'
     + '<button class="btn wide orange" id="rhasard">Répartir au hasard</button>'
     + '<button class="btn wide" id="rmain">Placer les élèves à la main</button>'
@@ -2262,6 +2298,7 @@ function sheetCreerGroupes(ap, sq, els, date, cle){
         };
       });
       root.querySelector("#rhasard").onclick = function(){ creer(root, remplirAuHasard(els, nb, date)); };
+      brancherAbsents(root);
       root.querySelector("#rmain").onclick = function(){ creer(root, {}); };
       var rep = root.querySelector("#rreprendre");
       if(rep) rep.onclick = function(){ sheetReprendre(els, date, cle, prec); };
