@@ -24,6 +24,8 @@
   --paper:#FFFFFF; --surface:#FFFFFF; --surface-2:#F2F3F6;
   --line:#E4E5EA; --line-strong:#C8CAD3;
   --accent:#4459E8; --accent-soft:#EAECFD; --accent-ink:#2C3AA8;
+  /* Créer des groupes : #B35607 mesuré à 4,94:1 avec le texte blanc (seuil AA 4,5). */
+  --orange:#B35607;
   --warn:#B4740F; --warn-soft:#FCF2DF;
   --alert:#C0392F; --alert-soft:#FDE9E6;
   --ok:#2E7D5B; --ok-soft:#E4F2EC;
@@ -527,6 +529,25 @@ body.avec-chrono .top h1{padding-right:92px}
 .roue-res{font-family:Archivo;font-size:clamp(30px,10vw,68px);line-height:1.1;text-align:center;
   min-height:1.15em;display:flex;align-items:center;justify-content:center;gap:14px}
 .roue-btn{min-height:66px;font-size:21px;width:min(92vw,430px)}
+/* Répartitions de séance : lisibles à bout de bras dans un gymnase. */
+.btn.orange{background:var(--orange);border-color:var(--orange);color:#fff}
+.rep{margin-top:10px;border:1px solid var(--line);border-radius:12px;overflow:hidden;background:var(--surface)}
+.rep-tete{display:flex;align-items:center;gap:10px;width:100%;min-height:56px;padding:0 12px;border:0;
+  background:var(--surface-2);font-size:17px;font-weight:700;color:var(--ink);text-align:left}
+.rep-ch{flex:none;font-size:13px;color:var(--ink-3);transition:transform .15s}
+.rep-tete[aria-expanded="true"] .rep-ch{transform:rotate(90deg)}
+.rep-corps{padding:4px 12px 14px}
+.rgrp{margin-top:14px;border-left:5px solid var(--c);padding-left:10px}
+.rgrp-t{display:flex;align-items:center;gap:10px;font-family:Archivo;font-weight:800;font-size:22px;
+  line-height:1.2;color:var(--c)}
+.rgrp-n{font-family:"IBM Plex Mono",monospace;font-size:16px;font-weight:600;background:var(--cs);
+  color:var(--c);border-radius:999px;padding:2px 11px}
+.rel{display:flex;align-items:center;gap:8px;width:100%;text-align:left;min-height:54px;padding:8px 12px;
+  margin-top:6px;border:1px solid var(--line);border-radius:10px;background:var(--surface);color:var(--ink);
+  font-size:22px;font-weight:700;line-height:1.2}
+.rel.abs{opacity:.45}
+.rel .badge{font-size:12px}
+.rel.choix{border-left:6px solid var(--c)}
 </style>
 </head>
 <body>
@@ -540,7 +561,7 @@ body.avec-chrono .top h1{padding-right:92px}
 /* Numéro de version affiché dans les Réglages. À garder identique à VERSION
    dans sw.js : c'est le seul moyen de savoir ce que la tablette exécute
    vraiment quand une mise à jour semble ne pas être arrivée. */
-var BUILD = "v15";
+var BUILD = "v16";
 
 var KEY = "carnet-eps-v1";
 function uid(){ return Math.random().toString(36).slice(2,10); }
@@ -861,7 +882,9 @@ function estGroupe(c){ return !!(c && c.membres); }
    ils sont donc rattachés au cycle, pas à la classe. */
 var TEINTES = [
   ["#1D4ED8","#E3EAFD"], ["#047857","#DDF2EA"], ["#B45309","#FBEEDA"],
-  ["#BE185D","#FBE4EF"], ["#6D28D9","#EDE6FD"], ["#0E7490","#DEF0F5"]
+  ["#BE185D","#FBE4EF"], ["#6D28D9","#EDE6FD"], ["#0E7490","#DEF0F5"],
+  /* 7e et 8e : ajoutées pour les répartitions jusqu à 8 groupes. */
+  ["#4D7C0F","#ECF4DD"], ["#475569","#E9EDF2"]
 ];
 function niveauxDe(ap){ return (ap && ap.niveaux) || []; }
 function teinte(i){ return TEINTES[i % TEINTES.length]; }
@@ -1500,6 +1523,10 @@ function vueSeance(){
   });
   h += '</div></div>';
 
+  /* Répartitions : classe entière du jour, jamais la liste filtrée. */
+  var tousEls = elevesDe(cl.id), cleRep = cleTirage(cl, ap, sq);
+  h += repartitionsHTML(cleRep, tousEls, date);
+
   app.innerHTML = h;
   on("#back", function(){ go({n:"jour", date:date}); });
   on("#addapsa", function(){ sheetAPSA(cl.id); });
@@ -1526,6 +1553,7 @@ function vueSeance(){
   brancherDispenses();
   on("#tirage", function(){ sheetTirage(cl, ap, sq, els, date); });
   brancherSeance(ap, sv, etapes);
+  brancherRepartitions(ap, sq, tousEls, date, cleRep);
 }
 
 /* Interactions de la fiche : dépliages, cases « fait », minuteurs.
@@ -1630,6 +1658,10 @@ function deroulHTML(txt){
    de CLES_STOCKAGE et donc reprise dans les sauvegardes. */
 var KEY_UNSS = "carnet-eps-unss-v1";
 var VERSION_UNSS = 1;
+/* Répartitions de séance : déclarée ici, avant CLES_STOCKAGE, sinon elle vaudrait
+   undefined au moment où la liste des clés sauvegardées est construite. */
+var KEY_REPARTITIONS = "carnet-eps-repartitions-v1";
+var VERSION_REPARTITIONS = 1;
 var KEY_ETAPES = "carnet-eps-etapes-v1";
 var KEY_TIRAGE = "carnet-eps-tirage-v1";
 var VERSION_ETAPES = 1;
@@ -2055,6 +2087,299 @@ function sheetTirage(cl, ap, sq, els, date){
       z.innerHTML = corps();
       brancher(z);
     });
+}
+
+
+/* ── Répartitions de la séance ──
+   Plusieurs répartitions nommées par séance (relais, puis vortex…), chacune
+   indépendante. Rangées dans leur propre clé, indexée par cleTirage : la séance
+   du jour quand elle existe, sinon la classe et la date. Toujours la classe
+   entière, jamais la liste filtrée par un groupe de niveau.
+   Une répartition : {id, nom, nb, affect:{eleveId: numéroDeGroupe}}.
+   Un élève absent d'« affect » est hors répartition. */
+function repartitionsDe(cle){
+  return lireCleAnnexe(KEY_REPARTITIONS, VERSION_REPARTITIONS).seances[cle] || [];
+}
+function ecrireRepartitions(cle, l){
+  var reg = lireCleAnnexe(KEY_REPARTITIONS, VERSION_REPARTITIONS);
+  if(l.length) reg.seances[cle] = l; else delete reg.seances[cle];
+  return ecrireCleAnnexe(KEY_REPARTITIONS, reg);
+}
+/* Nom proposé d'office : en plein cours, rien ne doit obliger à taper. */
+function nomRepartitionLibre(l){
+  var noms = l.map(function(r){ return r.nom; }), k = l.length + 1;
+  while(noms.indexOf("Répartition " + k) >= 0) k++;
+  return "Répartition " + k;
+}
+function nomEleveRep(e){ return e.prenom ? e.prenom + " " + e.nom.toUpperCase() : e.nom; }
+/* Même règle que le tirage ; le libellé précise seulement la raison. */
+function motifExclusion(e, date){
+  if(S.events.some(function(x){ return x.eleveId === e.id && x.date === date && x.type === "absent"; })) return "absent";
+  return exclusDuTirage(e, date) ? "dispensé" : "";
+}
+function melanger(l){
+  var a = l.slice(), i, j, t;
+  for(i = a.length - 1; i > 0; i--){ j = Math.floor(Math.random() * (i + 1)); t = a[i]; a[i] = a[j]; a[j] = t; }
+  return a;
+}
+/* Tour de table sur une liste mélangée : les effectifs ne diffèrent jamais de
+   plus d'un élève. Absents et dispensés du jour restent hors répartition. */
+function remplirAuHasard(els, nb, date){
+  var affect = {};
+  melanger(els.filter(function(e){ return !exclusDuTirage(e, date); }))
+    .forEach(function(e, i){ affect[e.id] = i % nb; });
+  return affect;
+}
+function tailles(n, nb){
+  var l = [], i;
+  for(i = 0; i < nb; i++) l.push(Math.floor(n / nb) + (i < n % nb ? 1 : 0));
+  return l;
+}
+function membresGroupe(r, els, g){
+  return els.filter(function(e){ return r.affect[e.id] === g; });
+}
+/* Répartitions des séances précédentes de la même APSA, de la plus récente à
+   la plus ancienne, dix au plus. */
+function repartitionsPrecedentes(ap, sq){
+  if(!ap || !sq) return [];
+  var reg = lireCleAnnexe(KEY_REPARTITIONS, VERSION_REPARTITIONS), out = [], n, l, i;
+  for(n = sq.num - 1; n >= 1 && out.length < 10; n--){
+    l = reg.seances[cleSeance(ap, n)] || [];
+    for(i = l.length - 1; i >= 0 && out.length < 10; i--) out.push({num:n, r:l[i]});
+  }
+  return out;
+}
+/* Une COPIE : nouvel objet, nouvel identifiant, nouvelle table d'affectation.
+   Rien n'est partagé avec la séance d'origine. Les élèves partis sont ignorés,
+   les absents du jour restent hors répartition, les nouveaux aussi. */
+function copierRepartition(src, els, date){
+  var affect = {};
+  els.forEach(function(e){
+    var g = (src.affect || {})[e.id];
+    if(typeof g !== "number" || g < 0 || g >= src.nb) return;
+    if(exclusDuTirage(e, date)) return;
+    affect[e.id] = g;
+  });
+  return {id:uid(), nom:src.nom, nb:src.nb, affect:affect};
+}
+
+function corpsRepartition(r, els, date){
+  var h = '<div class="rep-corps">', g;
+  for(g = 0; g < r.nb; g++){
+    var m = membresGroupe(r, els, g);
+    h += '<div class="rgrp"' + styleTeinte(g) + '><div class="rgrp-t">Groupe ' + (g + 1)
+      + '<span class="rgrp-n">' + m.length + '</span></div>';
+    if(!m.length) h += '<p class="muted" style="margin:6px 0 0;font-size:14px">Aucun élève</p>';
+    m.forEach(function(e){
+      var x = motifExclusion(e, date);
+      h += '<button class="rel' + (x ? ' abs' : '') + '" data-rplace="' + e.id + '" data-rid="' + r.id + '">'
+        + '<span class="grow">' + esc(nomEleveRep(e)) + '</span>'
+        + (x ? '<span class="badge b-alert">' + x + '</span>' : '') + '</button>';
+    });
+    h += '</div>';
+  }
+  var hors = els.filter(function(e){ return typeof r.affect[e.id] !== "number" || r.affect[e.id] >= r.nb; });
+  if(hors.length){
+    h += '<div class="rgrp" style="--c:var(--ink-3);--cs:var(--surface-2)"><div class="rgrp-t">Hors répartition'
+      + '<span class="rgrp-n">' + hors.length + '</span></div>'
+      + '<p class="muted" style="margin:4px 0 0;font-size:13px">Un appui place l\'élève dans le groupe le moins rempli.</p>';
+    hors.forEach(function(e){
+      var x = motifExclusion(e, date);
+      h += '<button class="rel' + (x ? ' abs' : '') + '" data-rinteg="' + e.id + '" data-rid="' + r.id + '">'
+        + '<span class="grow">' + esc(nomEleveRep(e)) + '</span>'
+        + (x ? '<span class="badge b-alert">' + x + '</span>' : '') + '</button>';
+    });
+    h += '</div>';
+  }
+  h += '<div class="row" style="margin-top:14px;flex-wrap:wrap">'
+    + '<button class="btn sm grow" data-rren="' + r.id + '">Renommer la répartition</button>'
+    + '<button class="btn sm grow" data-rhas="' + r.id + '">Refaire au hasard</button></div>'
+    + '<button class="btn sm wide danger" data-rsup="' + r.id + '" style="margin-top:8px">Supprimer cette répartition</button>'
+    + '</div>';
+  return h;
+}
+
+function repartitionsHTML(cle, els, date){
+  var l = repartitionsDe(cle), h = '<div class="sect">';
+  if(l.length) h += '<span class="eyebrow">Groupes de la séance · ' + l.length + '</span>';
+  l.forEach(function(r){
+    var ouvert = view.repOuv === r.id;
+    h += '<div class="rep"><button class="rep-tete" data-repouv="' + r.id + '" aria-expanded="' + ouvert + '">'
+      + '<span class="rep-ch">▶</span><span class="grow truncate">' + esc(r.nom) + '</span>'
+      + '<span class="badge b-quiet">' + r.nb + ' groupe' + (r.nb > 1 ? 's' : '') + '</span></button>'
+      + (ouvert ? corpsRepartition(r, els, date) : '') + '</div>';
+  });
+  return h + '<button class="btn wide orange" id="creergr"' + (l.length ? ' style="margin-top:12px"' : '')
+    + '>Créer des groupes</button></div>';
+}
+
+function sheetCreerGroupes(ap, sq, els, date, cle){
+  var l = repartitionsDe(cle), nb = 4;
+  var prec = repartitionsPrecedentes(ap, sq);
+  var presents = els.filter(function(e){ return !exclusDuTirage(e, date); }).length;
+  var grille = "", i;
+  for(i = 2; i <= 8; i++) grille += '<button class="btn nb' + (i === nb ? ' sel' : '') + '" data-rnb="' + i + '">' + i + '</button>';
+
+  function info(){
+    var exclus = els.length - presents;
+    return presents + ' élève' + (presents > 1 ? 's' : '') + ' présent' + (presents > 1 ? 's' : '')
+      + (exclus ? ' · ' + exclus + ' absent' + (exclus > 1 ? 's' : '') + ' ou dispensé' + (exclus > 1 ? 's' : '') : '')
+      + '<br>Au hasard : groupes de <b class="num">' + tailles(presents, nb).join(' · ') + '</b>';
+  }
+  function creer(root, affect){
+    var nom = root.querySelector("#rnom").value.trim() || nomRepartitionLibre(l);
+    var r = {id:uid(), nom:nom, nb:nb, affect:affect};
+    l.push(r);
+    if(!ecrireRepartitions(cle, l)) return;
+    view.repOuv = r.id;
+    fermerSheet(); render();
+    toast(nom + " · " + nb + " groupes");
+  }
+
+  ouvrirSheet("Créer des groupes",
+    '<label class="field"><span>Nom de la répartition</span>'
+    + '<input type="text" id="rnom" value="' + esc(nomRepartitionLibre(l)) + '"></label>'
+    + '<span class="eyebrow" style="color:var(--ink-3)">Nombre de groupes</span>'
+    + '<div class="nbgrille" style="grid-template-columns:repeat(7,1fr)">' + grille + '</div>'
+    + '<p class="muted" id="rinfo" style="margin:0;font-size:13px">' + info() + '</p>'
+    + '<button class="btn wide orange" id="rhasard">Répartir au hasard</button>'
+    + '<button class="btn wide" id="rmain">Placer les élèves à la main</button>'
+    + (prec.length ? '<button class="btn wide" id="rreprendre">Reprendre une répartition</button>' : ''),
+    function(root){
+      /* La feuille donne le focus au premier champ, ce qui ouvrirait le clavier
+         de la tablette : le nom est déjà rempli, on le retire. */
+      setTimeout(function(){
+        var n = root.querySelector("#rnom");
+        if(n && document.activeElement === n) n.blur();
+      }, 120);
+      Array.prototype.forEach.call(root.querySelectorAll("[data-rnb]"), function(b){
+        b.onclick = function(){
+          nb = parseInt(b.dataset.rnb, 10);
+          Array.prototype.forEach.call(root.querySelectorAll("[data-rnb]"), function(x){
+            x.className = "btn nb" + (x === b ? " sel" : "");
+          });
+          root.querySelector("#rinfo").innerHTML = info();
+        };
+      });
+      root.querySelector("#rhasard").onclick = function(){ creer(root, remplirAuHasard(els, nb, date)); };
+      root.querySelector("#rmain").onclick = function(){ creer(root, {}); };
+      var rep = root.querySelector("#rreprendre");
+      if(rep) rep.onclick = function(){ sheetReprendre(els, date, cle, prec); };
+    });
+}
+
+function sheetReprendre(els, date, cle, prec){
+  ouvrirSheet("Reprendre une répartition",
+    '<p class="muted" style="margin:0;font-size:13px">Une copie est créée pour aujourd\'hui : la séance d\'origine ne change pas. '
+    + 'Les absents du jour et les nouveaux élèves restent hors répartition.</p>'
+    + '<div class="plist">' + prec.map(function(p, i){
+        return '<button class="prow" data-rprec="' + i + '"><span class="grow truncate">'
+          + '<span class="nm">' + esc(p.r.nom) + '</span><br>'
+          + '<span class="meta">Séance ' + p.num + ' · ' + p.r.nb + ' groupes</span></span>'
+          + '<span class="chev">›</span></button>';
+      }).join("") + '</div>',
+    function(root){
+      Array.prototype.forEach.call(root.querySelectorAll("[data-rprec]"), function(b){
+        b.onclick = function(){
+          var src = prec[parseInt(b.dataset.rprec, 10)].r;
+          var l = repartitionsDe(cle), r = copierRepartition(src, els, date);
+          l.push(r);
+          if(!ecrireRepartitions(cle, l)) return;
+          view.repOuv = r.id;
+          fermerSheet(); render();
+          toast("« " + r.nom + " » reprise");
+        };
+      });
+    });
+}
+
+function sheetPlacerEleve(cle, rid, eid){
+  var l = repartitionsDe(cle), r = l.filter(function(x){ return x.id === rid; })[0], e = eleveById(eid);
+  if(!r || !e) return;
+  var cur = r.affect[eid], g, h = '';
+  for(g = 0; g < r.nb; g++){
+    h += '<button class="rel choix"' + styleTeinte(g) + ' data-rg="' + g + '">'
+      + '<span class="grow">Groupe ' + (g + 1) + '</span>'
+      + (cur === g ? '<span class="badge b-quiet">actuel</span>' : '') + '</button>';
+  }
+  ouvrirSheet(esc(nomEleveRep(e)),
+    '<div>' + h + '<button class="rel" data-rg="-1"><span class="grow">Hors répartition</span></button></div>',
+    function(root){
+      Array.prototype.forEach.call(root.querySelectorAll("[data-rg]"), function(b){
+        b.onclick = function(){
+          var v = parseInt(b.dataset.rg, 10);
+          if(v < 0) delete r.affect[eid]; else r.affect[eid] = v;
+          ecrireRepartitions(cle, l);
+          fermerSheet(); render();
+          toast(e.prenom + " → " + (v < 0 ? "hors répartition" : "Groupe " + (v + 1)));
+        };
+      });
+    });
+}
+
+function brancherRepartitions(ap, sq, els, date, cle){
+  function trouver(id){
+    var l = repartitionsDe(cle);
+    return {l:l, r:l.filter(function(x){ return x.id === id; })[0]};
+  }
+  on("#creergr", function(){ sheetCreerGroupes(ap, sq, els, date, cle); });
+  each("[data-repouv]", function(b){
+    b.onclick = function(){
+      view.repOuv = view.repOuv === b.dataset.repouv ? null : b.dataset.repouv;
+      render();
+    };
+  });
+  each("[data-rplace]", function(b){
+    b.onclick = function(){ sheetPlacerEleve(cle, b.dataset.rid, b.dataset.rplace); };
+  });
+  /* Réintégrer d'un appui : dans le groupe le moins rempli, le premier à égalité. */
+  each("[data-rinteg]", function(b){
+    b.onclick = function(){
+      var t = trouver(b.dataset.rid), e = eleveById(b.dataset.rinteg);
+      if(!t.r || !e) return;
+      var best = 0, g, n;
+      for(g = 1; g < t.r.nb; g++){
+        n = membresGroupe(t.r, els, g).length;
+        if(n < membresGroupe(t.r, els, best).length) best = g;
+      }
+      t.r.affect[e.id] = best;
+      ecrireRepartitions(cle, t.l); render();
+      toast(e.prenom + " → Groupe " + (best + 1));
+    };
+  });
+  each("[data-rren]", function(b){
+    b.onclick = function(){
+      var t = trouver(b.dataset.rren);
+      if(!t.r) return;
+      ouvrirSheet("Renommer la répartition",
+        '<label class="field"><span>Nom</span><input type="text" id="rn" value="' + esc(t.r.nom) + '"></label>'
+        + '<button class="btn primary wide" id="ok">Enregistrer</button>',
+        function(root){
+          root.querySelector("#ok").onclick = function(){
+            var v = root.querySelector("#rn").value.trim();
+            if(!v) return toast("Donne un nom à la répartition");
+            t.r.nom = v; ecrireRepartitions(cle, t.l);
+            fermerSheet(); render(); toast("Répartition renommée");
+          };
+        });
+    };
+  });
+  each("[data-rhas]", function(b){
+    b.onclick = function(){
+      var t = trouver(b.dataset.rhas);
+      if(!t.r) return;
+      t.r.affect = remplirAuHasard(els, t.r.nb, date);
+      ecrireRepartitions(cle, t.l); render(); toast("Groupes refaits au hasard");
+    };
+  });
+  each("[data-rsup]", function(b){
+    b.onclick = function(){
+      var t = trouver(b.dataset.rsup);
+      if(!t.r || !window.confirm("Supprimer « " + t.r.nom + " » ?")) return;
+      ecrireRepartitions(cle, t.l.filter(function(x){ return x.id !== t.r.id; }));
+      view.repOuv = null; render(); toast("Répartition supprimée");
+    };
+  });
 }
 
 function vueCycle(){
@@ -3316,7 +3641,7 @@ function chargerDemo(){
    CLES_STOCKAGE est dérivé de KEY, jamais recopié à la main : si une clé
    est ajoutée un jour, il suffit de l'ajouter ici. */
 var VERSION_SAUVEGARDE = 1;
-var CLES_STOCKAGE = [KEY, KEY_ETAPES, KEY_TIRAGE, KEY_UNSS];
+var CLES_STOCKAGE = [KEY, KEY_ETAPES, KEY_TIRAGE, KEY_UNSS, KEY_REPARTITIONS];
 
 function nomFichierSauvegarde(){
   return "carnet-eps-sauvegarde-" + AUJ() + ".json";
