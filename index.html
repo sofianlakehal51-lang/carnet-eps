@@ -555,6 +555,10 @@ body.avec-chrono .top h1{padding-right:92px}
 .abs-b.on{background:var(--alert-soft);border-color:var(--alert)}
 .abs-b[disabled]{opacity:.6}
 .abs-b .badge{font-size:11px}
+/* Inscriptions UNSS : filles et garçons séparés dans chaque catégorie. */
+.as-grp{margin-top:12px}
+.as-grp-t{display:flex;align-items:center;gap:8px;font-family:Archivo;font-weight:700;font-size:15px;
+  color:var(--ink-2);margin-bottom:8px}
 </style>
 </head>
 <body>
@@ -568,7 +572,7 @@ body.avec-chrono .top h1{padding-right:92px}
 /* Numéro de version affiché dans les Réglages. À garder identique à VERSION
    dans sw.js : c'est le seul moyen de savoir ce que la tablette exécute
    vraiment quand une mise à jour semble ne pas être arrivée. */
-var BUILD = "v17";
+var BUILD = "v18";
 
 var KEY = "carnet-eps-v1";
 function uid(){ return Math.random().toString(36).slice(2,10); }
@@ -1218,6 +1222,7 @@ var ICONS = {
 var RACINE = {jour:"jour", seance:"jour", atelier:"jour", cycle:"classes", groupes:"classes",
               classes:"classes", classe:"classes", rappels:"rappels",
               unss:"classes", tournoi:"classes", classement:"classes",
+              licencies:"classes", licencie:"classes",
               docs:"docs", doc:"docs", reglages:"docs",
               eleves:"eleves", eleve:"eleves", dispenses:"eleves"};
 function renderNav(){
@@ -1667,6 +1672,10 @@ var KEY_UNSS = "carnet-eps-unss-v1";
 var VERSION_UNSS = 1;
 /* Répartitions de séance : déclarée ici, avant CLES_STOCKAGE, sinon elle vaudrait
    undefined au moment où la liste des clés sauvegardées est construite. */
+/* Association sportive : annuaire du collège et inscriptions. Déclarée avant
+   CLES_STOCKAGE, comme les autres, pour entrer dans les sauvegardes. */
+var KEY_AS = "carnet-eps-as-v1";
+var VERSION_AS = 1;
 var KEY_REPARTITIONS = "carnet-eps-repartitions-v1";
 var VERSION_REPARTITIONS = 1;
 var KEY_ETAPES = "carnet-eps-etapes-v1";
@@ -3110,10 +3119,11 @@ function vueClasses(){
 
   /* L'association sportive n'est pas une classe : elle a sa propre entrée, et
      son propre décor, pour qu'on ne la confonde jamais avec un cours. */
-  var nbT = lireUnss().tournois.length;
+  var nbT = lireUnss().tournois.length, nbL = lireAS().licencies.length;
   h += '<div class="sect"><button class="foot" id="unss">'
-    + '<span class="bal">⚽</span><span class="grow"><span class="t">UNSS Football</span>'
-    + '<span class="s">' + (nbT ? nbT + " tournoi" + (nbT > 1 ? "s" : "") : "Organiser un tournoi")
+    + '<span class="bal">⚽</span><span class="grow"><span class="t">UNSS</span>'
+    + '<span class="s">' + (nbL ? nbL + " inscrit" + (nbL > 1 ? "s" : "") : "Aucun inscrit")
+      + ' · ' + (nbT ? nbT + " tournoi" + (nbT > 1 ? "s" : "") : "aucun tournoi")
     + '</span></span><span class="chev">›</span></button></div>';
 
   h += '<div class="sect"><div class="plist">';
@@ -3678,7 +3688,7 @@ function chargerDemo(){
    CLES_STOCKAGE est dérivé de KEY, jamais recopié à la main : si une clé
    est ajoutée un jour, il suffit de l'ajouter ici. */
 var VERSION_SAUVEGARDE = 1;
-var CLES_STOCKAGE = [KEY, KEY_ETAPES, KEY_TIRAGE, KEY_UNSS, KEY_REPARTITIONS];
+var CLES_STOCKAGE = [KEY, KEY_ETAPES, KEY_TIRAGE, KEY_UNSS, KEY_REPARTITIONS, KEY_AS];
 
 function nomFichierSauvegarde(){
   return "carnet-eps-sauvegarde-" + AUJ() + ".json";
@@ -4801,11 +4811,14 @@ function ouvrirRoue(couleurs, titre){
 /* ── Écran : la rubrique UNSS Football ── */
 function vueUnss(){
   var u = lireUnss();
-  var h = header("UNSS Football", u.tournois.length
-    ? u.tournois.length + " tournoi" + (u.tournois.length > 1 ? "s" : "")
-    : "Aucun tournoi", true);
+  var nbLic = lireAS().licencies.length;
+  var h = header("UNSS", (nbLic ? nbLic + " inscrit" + (nbLic > 1 ? "s" : "") : "Aucun inscrit")
+    + " · " + (u.tournois.length ? u.tournois.length + " tournoi" + (u.tournois.length > 1 ? "s" : "") : "aucun tournoi"), true);
 
-  h += '<div class="sect"><button class="btn wide primary" id="newt">+ Organiser un tournoi</button></div>';
+  h += '<div class="sect"><button class="btn wide primary" id="inscr">Inscriptions'
+    + (nbLic ? ' · ' + nbLic + ' élève' + (nbLic > 1 ? 's' : '') : '') + '</button></div>';
+  h += '<div class="sect"><span class="eyebrow">Tournois de football</span>'
+    + '<button class="btn wide" id="newt">+ Organiser un tournoi</button></div>';
 
   if(!u.tournois.length){
     h += '<div class="sect"><div class="empty">Crée un tournoi : tu choisis le nombre d\'équipes, '
@@ -4834,6 +4847,7 @@ function vueUnss(){
 
   app.innerHTML = h;
   on("#back", function(){ go({n:"classes"}); });
+  on("#inscr", function(){ go({n:"licencies"}); });
   on("#newt", sheetNouveauTournoi);
   each("[data-t]", function(b){
     b.onclick = function(){ go({n:"tournoi", id:b.dataset.t}); };
@@ -5208,12 +5222,341 @@ function sheetScore(tid, mid){
     });
 }
 
+
+/* ══════════ Association sportive : annuaire et inscriptions ══════════
+   L'annuaire, ce sont les 360 élèves du collège, collés depuis le tableau de
+   la vie scolaire. Il ne sert qu'à retrouver un élève qui vient s'inscrire :
+   aucun nom n'est écrit dans le code, tout arrive par le collage et reste sur
+   la tablette. L'INE n'est volontairement pas repris : identifiant national,
+   sans utilité pour une inscription à l'AS.
+   Une inscription renvoie à l'annuaire par une clé stable — nom, prénom, date
+   de naissance — pour qu'un nouveau collage de la liste ne la perde pas. */
+var ACTIVITES_AS = ["Football", "Basket-ball", "Badminton", "Tennis de table"];
+/* Catégories UNSS de la saison : l'écart est compté depuis l'année de rentrée.
+   2026-2027 : benjamins 2014-2015, minimes 2012-2013, cadets 2010-2011. */
+var SAISON_UNSS = 2026;
+var CATEGORIES_UNSS = [
+  {cle:"benjamin", nom:"Benjamin",  nomF:"Benjamine", ecart:[11, 12]},
+  {cle:"minime",   nom:"Minime",    nomF:"Minime",    ecart:[13, 14]},
+  {cle:"cadet",    nom:"Cadet",     nomF:"Cadette",   ecart:[15, 16]}
+];
+
+function lireAS(){
+  var o = null;
+  try { o = JSON.parse(localStorage.getItem(KEY_AS)); } catch(e){ o = null; }
+  if(!o || typeof o !== "object" || o.version !== VERSION_AS) o = {version:VERSION_AS, annuaire:[], licencies:[]};
+  if(Object.prototype.toString.call(o.annuaire) !== "[object Array]") o.annuaire = [];
+  if(Object.prototype.toString.call(o.licencies) !== "[object Array]") o.licencies = [];
+  return o;
+}
+function ecrireAS(a){
+  try { localStorage.setItem(KEY_AS, JSON.stringify(a)); return true; }
+  catch(e){ toast("Stockage plein : rien n'a été enregistré"); return false; }
+}
+function cleEleveAS(nom, prenom, naiss){
+  return String(nom).toUpperCase().trim() + "|" + String(prenom).trim() + "|" + naiss;
+}
+function categorieDe(naiss){
+  var an = parseInt(String(naiss).slice(0, 4), 10);
+  if(!an) return null;
+  for(var i = 0; i < CATEGORIES_UNSS.length; i++){
+    var c = CATEGORIES_UNSS[i];
+    if(an === SAISON_UNSS - c.ecart[0] || an === SAISON_UNSS - c.ecart[1]) return c;
+  }
+  return null;
+}
+function libelleCategorie(naiss, sexe){
+  var c = categorieDe(naiss);
+  if(!c) return "Hors catégorie";
+  return sexe === "F" ? c.nomF : c.nom;
+}
+function ageAu(naiss, date){
+  var n = new Date(naiss + "T12:00:00"), d = new Date(date + "T12:00:00");
+  var a = d.getFullYear() - n.getFullYear();
+  if(d.getMonth() < n.getMonth() || (d.getMonth() === n.getMonth() && d.getDate() < n.getDate())) a--;
+  return a;
+}
+function eleveAS(id){
+  return lireAS().annuaire.filter(function(e){ return e.id === id; })[0] || null;
+}
+function licenceDe(id){
+  return lireAS().licencies.filter(function(l){ return l.id === id; })[0] || null;
+}
+function licenciesTries(){
+  var a = lireAS();
+  return a.licencies.map(function(l){
+    var e = a.annuaire.filter(function(x){ return x.id === l.id; })[0];
+    return e ? {l:l, e:e} : null;
+  }).filter(Boolean).sort(function(x, y){
+    return (x.e.nom + x.e.prenom).localeCompare(y.e.nom + y.e.prenom, "fr");
+  });
+}
+
+/* ── Lecture de la liste collée depuis le tableur ──
+   Les colonnes sont reconnues par leur titre, pas par leur position : le
+   tableau de la vie scolaire peut changer d'ordre sans rien casser. */
+function normaliserEntete(s){
+  return sansAccents(s).replace(/[^a-z0-9]/g, "");
+}
+function litDateFr(v){
+  var t = String(v).trim();
+  var m = t.match(/^(\d{1,2})[\/.-](\d{1,2})[\/.-](\d{4})$/);
+  if(m) return m[3] + "-" + ("0" + m[2]).slice(-2) + "-" + ("0" + m[1]).slice(-2);
+  if(/^\d{4}-\d{2}-\d{2}$/.test(t)) return t;
+  /* Numéro de série du tableur, au cas où la cellule serait collée brute. */
+  if(/^\d{5}$/.test(t)) return iso(new Date(Date.UTC(1899, 11, 30) + (+t) * 86400000));
+  return "";
+}
+function analyserListeEleves(txt){
+  var lignes = String(txt).split(/\r?\n/).filter(function(l){ return l.trim(); });
+  if(!lignes.length) return {erreur:"Rien à lire"};
+  var sep = lignes[0].indexOf("\t") >= 0 ? "\t" : (lignes[0].indexOf(";") >= 0 ? ";" : null);
+  if(!sep) return {erreur:"Colonnes introuvables : copie le tableau depuis le tableur, pas une seule colonne"};
+
+  var iEnt = -1, cols = null, i;
+  for(i = 0; i < lignes.length && i < 10; i++){
+    var c = lignes[i].split(sep).map(normaliserEntete);
+    if(c.indexOf("nomdefamille") >= 0 || (c.indexOf("nom") >= 0 && c.join("").indexOf("prenom") >= 0)){ iEnt = i; cols = c; break; }
+  }
+  if(iEnt < 0) return {erreur:"Ligne de titres introuvable : garde la première ligne du tableau (Nom de famille, Prénom…)"};
+
+  function idx(noms){
+    for(var k = 0; k < noms.length; k++){
+      var j = cols.indexOf(noms[k]);
+      if(j >= 0) return j;
+    }
+    return -1;
+  }
+  var cNom = idx(["nomdefamille", "nom"]), cPre = idx(["prenom1", "prenom"]);
+  var cNai = idx(["datedenaissance", "naissance", "ne", "nele"]);
+  var cSex = idx(["sexe"]), cDiv = idx(["division", "classe"]), cMef = idx(["mef", "niveau"]);
+  if(cNom < 0 || cPre < 0) return {erreur:"Colonnes Nom et Prénom introuvables"};
+  if(cNai < 0) return {erreur:"Colonne « Date de naissance » introuvable"};
+
+  var out = [], vus = {}, ignorees = 0;
+  for(i = iEnt + 1; i < lignes.length; i++){
+    var v = lignes[i].split(sep);
+    var nom = (v[cNom] || "").trim(), prenom = (v[cPre] || "").trim();
+    var naiss = litDateFr(v[cNai] || "");
+    if(!nom || !prenom || !naiss){ ignorees++; continue; }
+    var e = {
+      id: cleEleveAS(nom, prenom, naiss),
+      nom: nom.toUpperCase(), prenom: prenom, naiss: naiss,
+      sexe: ((v[cSex] || "").trim().toUpperCase().charAt(0) === "F") ? "F" : "M",
+      classe: cDiv >= 0 ? (v[cDiv] || "").trim() : "",
+      niveau: cMef >= 0 ? (v[cMef] || "").trim() : ""
+    };
+    if(vus[e.id]){ ignorees++; continue; }
+    vus[e.id] = true;
+    out.push(e);
+  }
+  if(!out.length) return {erreur:"Aucun élève lisible dans ce texte"};
+  return {eleves:out, ignorees:ignorees};
+}
+
+function sheetImportAnnuaire(){
+  ouvrirSheet("Liste du collège",
+    '<p class="muted" style="margin:0;font-size:13px">Ouvre le tableau de la vie scolaire, sélectionne tout (Ctrl+A), copie (Ctrl+C), '
+    + 'puis colle ici. Garde la ligne de titres. L\'appli reconnaît Nom de famille, Prénom, Date de naissance, Sexe et Division.</p>'
+    + '<p class="muted" style="margin:0;font-size:13px">L\'INE n\'est pas repris. Cette liste reste sur cette tablette et part dans tes sauvegardes.</p>'
+    + '<label class="field"><span>Liste collée</span>'
+    + '<textarea id="tx" style="min-height:160px;font-size:12px" placeholder="Nom de famille	Prénom 1	Date de naissance	…"></textarea></label>'
+    + '<button class="btn primary wide" id="ok">Lire la liste</button>',
+    function(root){
+      root.querySelector("#ok").onclick = function(){
+        var res = analyserListeEleves(root.querySelector("#tx").value);
+        if(res.erreur) return toast(res.erreur);
+        var a = lireAS();
+        a.annuaire = res.eleves;
+        /* Une inscription dont l'élève a quitté le collège est retirée. */
+        var ids = {}; res.eleves.forEach(function(e){ ids[e.id] = true; });
+        var perdues = a.licencies.filter(function(l){ return !ids[l.id]; }).length;
+        a.licencies = a.licencies.filter(function(l){ return ids[l.id]; });
+        if(!ecrireAS(a)) return;
+        fermerSheet(); render();
+        toast(res.eleves.length + " élèves lus"
+          + (res.ignorees ? " · " + res.ignorees + " lignes ignorées" : "")
+          + (perdues ? " · " + perdues + " inscription(s) retirée(s)" : ""));
+      };
+    });
+}
+
+/* ── Inscrire : l'élève annonce son prénom, je le retrouve ── */
+function sheetInscrire(){
+  var a = lireAS();
+  if(!a.annuaire.length) return sheetImportAnnuaire();
+  var inscrits = {};
+  a.licencies.forEach(function(l){ inscrits[l.id] = true; });
+
+  function resultats(q){
+    var t = sansAccents(q).trim();
+    if(t.length < 2) return '<div class="empty">Tape au moins deux lettres du prénom ou du nom.</div>';
+    var l = a.annuaire.filter(function(e){
+      return sansAccents(e.prenom).indexOf(t) === 0 || sansAccents(e.nom).indexOf(t) === 0
+        || sansAccents(e.prenom + " " + e.nom).indexOf(t) >= 0;
+    }).slice(0, 30);
+    if(!l.length) return '<div class="empty">Aucun élève trouvé pour « ' + esc(q) + ' ».</div>';
+    return '<div class="plist">' + l.map(function(e){
+      var deja = inscrits[e.id];
+      return '<button class="prow" data-as="' + esc(e.id) + '"' + (deja ? ' disabled style="opacity:.5"' : '') + '>'
+        + '<span class="grow truncate"><span class="nm">' + esc(e.prenom) + ' ' + esc(e.nom) + '</span><br>'
+        + '<span class="meta">' + esc(e.classe || e.niveau || "—") + ' · ' + esc(libelleCategorie(e.naiss, e.sexe))
+        + ' · né' + (e.sexe === "F" ? "e" : "") + ' le ' + frDate(e.naiss) + '</span></span>'
+        + (deja ? '<span class="badge b-ok">inscrit</span>' : '<span class="chev">+</span>') + '</button>';
+    }).join("") + '</div>';
+  }
+
+  ouvrirSheet("Inscrire un élève",
+    '<label class="field"><span>Prénom ou nom</span><input type="text" id="qas" placeholder="Ex. : Lina"></label>'
+    + '<div id="ras">' + resultats("") + '</div>',
+    function(root){
+      function brancher(){
+        Array.prototype.forEach.call(root.querySelectorAll("[data-as]"), function(b){
+          b.onclick = function(){
+            var e = eleveAS(b.dataset.as);
+            if(!e) return;
+            var cur = lireAS();
+            if(cur.licencies.filter(function(l){ return l.id === e.id; }).length) return;
+            cur.licencies.push({id:e.id, autor:false, activites:[], depuis:AUJ()});
+            if(!ecrireAS(cur)) return;
+            fermerSheet(); go({n:"licencie", id:e.id});
+            toast(e.prenom + " est inscrit");
+          };
+        });
+      }
+      var q = root.querySelector("#qas");
+      q.oninput = function(){
+        root.querySelector("#ras").innerHTML = resultats(q.value);
+        brancher();
+      };
+      brancher();
+    });
+}
+
+/* ── Écran : les inscrits, rangés par catégorie puis par sexe ── */
+function vueLicencies(){
+  var a = lireAS(), l = licenciesTries();
+  var h = header("Inscriptions UNSS", l.length
+    ? l.length + " inscrit" + (l.length > 1 ? "s" : "")
+    : "Aucun inscrit", true);
+
+  h += '<div class="sect"><button class="btn wide primary" id="inscrire">+ Inscrire un élève</button></div>';
+
+  if(!a.annuaire.length){
+    h += '<div class="sect"><div class="empty">La liste du collège n\'est pas encore chargée.<br>'
+      + 'Colle-la une fois : tu pourras ensuite retrouver n\'importe quel élève par son prénom.<br><br>'
+      + '<button class="btn sm primary" id="import1">Coller la liste du collège</button></div></div>';
+  } else if(!l.length){
+    h += '<div class="sect"><div class="empty">Personne n\'est encore inscrit.<br>'
+      + a.annuaire.length + ' élèves dans la liste du collège.</div></div>';
+  }
+
+  CATEGORIES_UNSS.forEach(function(c){
+    var dans = l.filter(function(x){ var k = categorieDe(x.e.naiss); return k && k.cle === c.cle; });
+    if(!dans.length) return;
+    h += '<div class="sect"><span class="eyebrow">' + esc(c.nom) + 's · ' + dans.length + '</span>';
+    [["F", c.nomF + "s"], ["M", c.nom + "s"]].forEach(function(s){
+      var g = dans.filter(function(x){ return x.e.sexe === s[0]; });
+      if(!g.length) return;
+      h += '<div class="as-grp"><div class="as-grp-t">' + esc(s[1])
+        + '<span class="rgrp-n">' + g.length + '</span></div><div class="plist">'
+        + g.map(function(x){
+            return '<button class="prow" data-lic="' + esc(x.e.id) + '">'
+              + '<span class="avatar">' + esc((x.e.prenom.charAt(0) + x.e.nom.charAt(0)).toUpperCase()) + '</span>'
+              + '<span class="grow truncate"><span class="nm">' + esc(x.e.prenom) + ' ' + esc(x.e.nom) + '</span><br>'
+              + '<span class="meta">' + esc(x.e.classe || x.e.niveau || "—")
+              + (x.l.activites.length ? ' · ' + esc(x.l.activites.join(", ")) : ' · aucune activité') + '</span></span>'
+              + (x.l.autor ? '<span class="badge b-ok">autorisation</span>' : '<span class="badge b-warn">à rendre</span>')
+              + '<span class="chev">›</span></button>';
+          }).join("") + '</div></div>';
+    });
+    h += '</div>';
+  });
+
+  var hors = l.filter(function(x){ return !categorieDe(x.e.naiss); });
+  if(hors.length){
+    h += '<div class="sect"><span class="eyebrow">Hors catégorie · ' + hors.length + '</span><div class="plist">'
+      + hors.map(function(x){
+          return '<button class="prow" data-lic="' + esc(x.e.id) + '"><span class="grow truncate">'
+            + '<span class="nm">' + esc(x.e.prenom) + ' ' + esc(x.e.nom) + '</span><br>'
+            + '<span class="meta">né' + (x.e.sexe === "F" ? "e" : "") + ' le ' + frDate(x.e.naiss) + '</span></span>'
+            + '<span class="chev">›</span></button>';
+        }).join("") + '</div></div>';
+  }
+
+  if(a.annuaire.length){
+    h += '<div class="sect"><button class="btn wide" id="import2">Mettre à jour la liste du collège ('
+      + a.annuaire.length + ' élèves)</button></div>';
+  }
+
+  app.innerHTML = h;
+  on("#back", function(){ go({n:"unss"}); });
+  on("#inscrire", sheetInscrire);
+  on("#import1", sheetImportAnnuaire);
+  on("#import2", sheetImportAnnuaire);
+  each("[data-lic]", function(b){ b.onclick = function(){ go({n:"licencie", id:b.dataset.lic}); }; });
+}
+
+/* ── Écran : la fiche d'un inscrit ── */
+function vueLicencie(){
+  var e = eleveAS(view.id), lic = licenceDe(view.id);
+  if(!e || !lic) return go({n:"licencies"});
+  var cat = libelleCategorie(e.naiss, e.sexe);
+
+  var h = header(e.prenom + " " + e.nom, cat + " · " + (e.classe || e.niveau || ""), true);
+  h += '<div class="sect"><div class="card" style="padding:16px">'
+    + '<div class="stats" style="margin-top:0">'
+    + '<div class="stat"><b class="num">' + ageAu(e.naiss, AUJ()) + '</b><span>ANS</span></div>'
+    + '<div class="stat"><b class="num">' + (e.sexe === "F" ? "F" : "G") + '</b><span>' + (e.sexe === "F" ? "FILLE" : "GARÇON") + '</span></div>'
+    + '<div class="stat is-note"><b style="font-size:15px">' + esc(cat) + '</b><span>CATÉGORIE</span></div></div>'
+    + '<p class="muted" style="font-size:14px;margin:14px 0 0;color:var(--ink)">Né' + (e.sexe === "F" ? "e" : "")
+    + ' le <b class="num">' + frDate(e.naiss) + '</b>'
+    + (e.classe ? ' · classe <b>' + esc(e.classe) + '</b>' : '')
+    + (e.niveau && e.niveau !== e.classe ? ' <span class="muted">(' + esc(e.niveau) + ')</span>' : '')
+    + '</p></div></div>';
+
+  h += '<div class="sect"><span class="eyebrow">Autorisation parentale</span>'
+    + '<button class="btn wide' + (lic.autor ? ' primary' : '') + '" id="autor">'
+    + (lic.autor ? "✓ Autorisation rendue" : "Autorisation non rendue") + '</button></div>';
+
+  h += '<div class="sect"><span class="eyebrow">Activités choisies</span><div class="chipbar">'
+    + ACTIVITES_AS.map(function(x){
+        var on = lic.activites.indexOf(x) >= 0;
+        return '<button class="chip" data-act="' + esc(x) + '" aria-pressed="' + on + '">' + esc(x) + '</button>';
+      }).join("") + '</div></div>';
+
+  h += '<div class="sect"><button class="btn wide danger" id="retirer">Retirer de l\'UNSS</button></div>';
+
+  app.innerHTML = h;
+  on("#back", function(){ go({n:"licencies"}); });
+  on("#autor", function(){
+    var a = lireAS(), t = a.licencies.filter(function(x){ return x.id === view.id; })[0];
+    t.autor = !t.autor; ecrireAS(a); render();
+    toast(t.autor ? "Autorisation rendue" : "Autorisation à rendre");
+  });
+  each("[data-act]", function(b){
+    b.onclick = function(){
+      var a = lireAS(), t = a.licencies.filter(function(x){ return x.id === view.id; })[0];
+      var i = t.activites.indexOf(b.dataset.act);
+      if(i >= 0) t.activites.splice(i, 1); else t.activites.push(b.dataset.act);
+      ecrireAS(a); render();
+    };
+  });
+  on("#retirer", function(){
+    if(!window.confirm("Retirer " + e.prenom + " " + e.nom + " de l'UNSS ?")) return;
+    var a = lireAS();
+    a.licencies = a.licencies.filter(function(x){ return x.id !== view.id; });
+    ecrireAS(a); go({n:"licencies"}); toast("Inscription retirée");
+  });
+}
+
 var VUES = {jour:vueJour, seance:vueSeance, cycle:vueCycle, groupes:vueGroupes,
             classes:vueClasses, classe:vueClasse, rappels:vueRappels,
             docs:vueDocs, doc:vueDoc,
             eleves:vueEleves, eleve:vueEleve, dispenses:vueDispenses,
             atelier:vueAtelier, reglages:vueReglages,
-            unss:vueUnss, tournoi:vueTournoi, classement:vueClassement};
+            unss:vueUnss, tournoi:vueTournoi, classement:vueClassement,
+            licencies:vueLicencies, licencie:vueLicencie};
 function render(){
   renderNav();
   (VUES[view.n] || vueJour)();
