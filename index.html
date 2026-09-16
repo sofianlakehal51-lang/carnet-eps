@@ -572,7 +572,7 @@ body.avec-chrono .top h1{padding-right:92px}
 /* Numéro de version affiché dans les Réglages. À garder identique à VERSION
    dans sw.js : c'est le seul moyen de savoir ce que la tablette exécute
    vraiment quand une mise à jour semble ne pas être arrivée. */
-var BUILD = "v18";
+var BUILD = "v19";
 
 var KEY = "carnet-eps-v1";
 function uid(){ return Math.random().toString(36).slice(2,10); }
@@ -5232,6 +5232,19 @@ function sheetScore(tid, mid){
    Une inscription renvoie à l'annuaire par une clé stable — nom, prénom, date
    de naissance — pour qu'un nouveau collage de la liste ne la perde pas. */
 var ACTIVITES_AS = ["Football", "Basket-ball", "Badminton", "Tennis de table"];
+/* Trois temps d une inscription : l élève est venu donner son prénom, le
+   dossier est complet, la licence est prise. Une inscription sans statut
+   enregistré est provisoire — c est l état de départ. */
+var STATUTS_AS = [
+  {cle:"provisoire", nom:"Provisoire", cls:"b-quiet"},
+  {cle:"inscrit",    nom:"Inscrit",    cls:"b-accent"},
+  {cle:"licencie",   nom:"Licencié",   cls:"b-ok"}
+];
+function statutDe(l){
+  var c = (l && l.statut) || "provisoire";
+  for(var i = 0; i < STATUTS_AS.length; i++) if(STATUTS_AS[i].cle === c) return STATUTS_AS[i];
+  return STATUTS_AS[0];
+}
 /* Catégories UNSS de la saison : l'écart est compté depuis l'année de rentrée.
    2026-2027 : benjamins 2014-2015, minimes 2012-2013, cadets 2010-2011. */
 var SAISON_UNSS = 2026;
@@ -5417,7 +5430,7 @@ function sheetInscrire(){
             if(!e) return;
             var cur = lireAS();
             if(cur.licencies.filter(function(l){ return l.id === e.id; }).length) return;
-            cur.licencies.push({id:e.id, autor:false, activites:[], depuis:AUJ()});
+            cur.licencies.push({id:e.id, statut:"provisoire", autor:false, activites:[], depuis:AUJ()});
             if(!ecrireAS(cur)) return;
             fermerSheet(); go({n:"licencie", id:e.id});
             toast(e.prenom + " est inscrit");
@@ -5435,12 +5448,26 @@ function sheetInscrire(){
 
 /* ── Écran : les inscrits, rangés par catégorie puis par sexe ── */
 function vueLicencies(){
-  var a = lireAS(), l = licenciesTries();
-  var h = header("Inscriptions UNSS", l.length
-    ? l.length + " inscrit" + (l.length > 1 ? "s" : "")
+  var a = lireAS(), tous = licenciesTries();
+  var fs2 = view.fstat || "";
+  var l = fs2 ? tous.filter(function(x){ return statutDe(x.l).cle === fs2; }) : tous;
+  var h = header("Inscriptions UNSS", tous.length
+    ? tous.length + " inscrit" + (tous.length > 1 ? "s" : "")
     : "Aucun inscrit", true);
 
   h += '<div class="sect"><button class="btn wide primary" id="inscrire">+ Inscrire un élève</button></div>';
+  if(tous.length){
+    var cpt = {};
+    tous.forEach(function(x){ var k = statutDe(x.l).cle; cpt[k] = (cpt[k] || 0) + 1; });
+    h += '<div class="sect"><div class="chipbar">'
+      + '<button class="chip" data-fs="_tous" aria-pressed="' + (!fs2) + '">Tout (' + tous.length + ')</button>'
+      + STATUTS_AS.map(function(t){
+          if(!cpt[t.cle]) return '';
+          return '<button class="chip" data-fs="' + t.cle + '" aria-pressed="' + (fs2 === t.cle) + '">'
+            + esc(t.nom) + ' (' + cpt[t.cle] + ')</button>';
+        }).join('')
+      + '</div></div>';
+  }
 
   if(!a.annuaire.length){
     h += '<div class="sect"><div class="empty">La liste du collège n\'est pas encore chargée.<br>'
@@ -5466,6 +5493,7 @@ function vueLicencies(){
               + '<span class="grow truncate"><span class="nm">' + esc(x.e.prenom) + ' ' + esc(x.e.nom) + '</span><br>'
               + '<span class="meta">' + esc(x.e.classe || x.e.niveau || "—")
               + (x.l.activites.length ? ' · ' + esc(x.l.activites.join(", ")) : ' · aucune activité') + '</span></span>'
+              + '<span class="badge ' + statutDe(x.l).cls + '">' + esc(statutDe(x.l).nom) + '</span>'
               + (x.l.autor ? '<span class="badge b-ok">autorisation</span>' : '<span class="badge b-warn">à rendre</span>')
               + '<span class="chev">›</span></button>';
           }).join("") + '</div></div>';
@@ -5492,6 +5520,12 @@ function vueLicencies(){
   app.innerHTML = h;
   on("#back", function(){ go({n:"unss"}); });
   on("#inscrire", sheetInscrire);
+  each("[data-fs]", function(b){
+    b.onclick = function(){
+      view.fstat = b.dataset.fs === "_tous" ? null : b.dataset.fs;
+      render();
+    };
+  });
   on("#import1", sheetImportAnnuaire);
   on("#import2", sheetImportAnnuaire);
   each("[data-lic]", function(b){ b.onclick = function(){ go({n:"licencie", id:b.dataset.lic}); }; });
@@ -5503,7 +5537,8 @@ function vueLicencie(){
   if(!e || !lic) return go({n:"licencies"});
   var cat = libelleCategorie(e.naiss, e.sexe);
 
-  var h = header(e.prenom + " " + e.nom, cat + " · " + (e.classe || e.niveau || ""), true);
+  var h = header(e.prenom + " " + e.nom,
+    statutDe(lic).nom + " · " + cat + " · " + (e.classe || e.niveau || ""), true);
   h += '<div class="sect"><div class="card" style="padding:16px">'
     + '<div class="stats" style="margin-top:0">'
     + '<div class="stat"><b class="num">' + ageAu(e.naiss, AUJ()) + '</b><span>ANS</span></div>'
@@ -5514,6 +5549,12 @@ function vueLicencie(){
     + (e.classe ? ' · classe <b>' + esc(e.classe) + '</b>' : '')
     + (e.niveau && e.niveau !== e.classe ? ' <span class="muted">(' + esc(e.niveau) + ')</span>' : '')
     + '</p></div></div>';
+
+  h += '<div class="sect"><span class="eyebrow">Statut</span><div class="chipbar">'
+    + STATUTS_AS.map(function(t){
+        return '<button class="chip" data-st="' + t.cle + '" aria-pressed="' + (statutDe(lic).cle === t.cle) + '">'
+          + esc(t.nom) + '</button>';
+      }).join('') + '</div></div>';
 
   h += '<div class="sect"><span class="eyebrow">Autorisation parentale</span>'
     + '<button class="btn wide' + (lic.autor ? ' primary' : '') + '" id="autor">'
@@ -5529,6 +5570,13 @@ function vueLicencie(){
 
   app.innerHTML = h;
   on("#back", function(){ go({n:"licencies"}); });
+  each("[data-st]", function(b){
+    b.onclick = function(){
+      var a2 = lireAS(), t = a2.licencies.filter(function(x){ return x.id === view.id; })[0];
+      t.statut = b.dataset.st; ecrireAS(a2); render();
+      toast(statutDe(t).nom);
+    };
+  });
   on("#autor", function(){
     var a = lireAS(), t = a.licencies.filter(function(x){ return x.id === view.id; })[0];
     t.autor = !t.autor; ecrireAS(a); render();
