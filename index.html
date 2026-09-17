@@ -572,7 +572,7 @@ body.avec-chrono .top h1{padding-right:92px}
 /* Numéro de version affiché dans les Réglages. À garder identique à VERSION
    dans sw.js : c'est le seul moyen de savoir ce que la tablette exécute
    vraiment quand une mise à jour semble ne pas être arrivée. */
-var BUILD = "v19";
+var BUILD = "v20";
 
 var KEY = "carnet-eps-v1";
 function uid(){ return Math.random().toString(36).slice(2,10); }
@@ -5245,6 +5245,19 @@ function statutDe(l){
   for(var i = 0; i < STATUTS_AS.length; i++) if(STATUTS_AS[i].cle === c) return STATUTS_AS[i];
   return STATUTS_AS[0];
 }
+/* Moyen de paiement de la cotisation. Tant que rien n'est choisi, la
+   cotisation est due : c'est l'état de départ, et il se voit dans la liste. */
+var PAIEMENTS_AS = [
+  {cle:"espece",     nom:"Espèces"},
+  {cle:"cheque",     nom:"Chèque"},
+  {cle:"passloisir", nom:"Pass'Loisir"},
+  {cle:"autre",      nom:"Autre"}
+];
+function paiementDe(l){
+  var c = l && l.paiement;
+  for(var i = 0; i < PAIEMENTS_AS.length; i++) if(PAIEMENTS_AS[i].cle === c) return PAIEMENTS_AS[i];
+  return null;
+}
 /* Catégories UNSS de la saison : l'écart est compté depuis l'année de rentrée.
    2026-2027 : benjamins 2014-2015, minimes 2012-2013, cadets 2010-2011. */
 var SAISON_UNSS = 2026;
@@ -5494,6 +5507,8 @@ function vueLicencies(){
               + '<span class="meta">' + esc(x.e.classe || x.e.niveau || "—")
               + (x.l.activites.length ? ' · ' + esc(x.l.activites.join(", ")) : ' · aucune activité') + '</span></span>'
               + '<span class="badge ' + statutDe(x.l).cls + '">' + esc(statutDe(x.l).nom) + '</span>'
+              + (paiementDe(x.l) ? '<span class="badge b-quiet">' + esc(paiementDe(x.l).nom) + '</span>'
+                  : '<span class="badge b-alert">à régler</span>')
               + (x.l.autor ? '<span class="badge b-ok">autorisation</span>' : '<span class="badge b-warn">à rendre</span>')
               + '<span class="chev">›</span></button>';
           }).join("") + '</div></div>';
@@ -5556,6 +5571,15 @@ function vueLicencie(){
           + esc(t.nom) + '</button>';
       }).join('') + '</div></div>';
 
+  h += '<div class="sect"><span class="eyebrow">Paiement de la cotisation</span><div class="chipbar">'
+    + PAIEMENTS_AS.map(function(t){
+        return '<button class="chip" data-pay="' + t.cle + '" aria-pressed="'
+          + (!!paiementDe(lic) && paiementDe(lic).cle === t.cle) + '">' + esc(t.nom) + '</button>';
+      }).join('')
+    + '</div><p class="muted" style="font-size:13px;margin:8px 0 0">'
+    + (paiementDe(lic) ? 'Réglé en ' + esc(paiementDe(lic).nom.toLowerCase())
+        + ' · touche à nouveau pour annuler.' : 'Cotisation non réglée.') + '</p></div>';
+
   h += '<div class="sect"><span class="eyebrow">Autorisation parentale</span>'
     + '<button class="btn wide' + (lic.autor ? ' primary' : '') + '" id="autor">'
     + (lic.autor ? "✓ Autorisation rendue" : "Autorisation non rendue") + '</button></div>';
@@ -5575,6 +5599,16 @@ function vueLicencie(){
       var a2 = lireAS(), t = a2.licencies.filter(function(x){ return x.id === view.id; })[0];
       t.statut = b.dataset.st; ecrireAS(a2); render();
       toast(statutDe(t).nom);
+    };
+  });
+  /* Toucher le moyen déjà choisi l'annule : une cotisation encaissée par erreur
+     se corrige du même geste. */
+  each("[data-pay]", function(b){
+    b.onclick = function(){
+      var a2 = lireAS(), t = a2.licencies.filter(function(x){ return x.id === view.id; })[0];
+      t.paiement = (t.paiement === b.dataset.pay) ? null : b.dataset.pay;
+      ecrireAS(a2); render();
+      toast(paiementDe(t) ? "Réglé en " + paiementDe(t).nom.toLowerCase() : "Cotisation non réglée");
     };
   });
   on("#autor", function(){
