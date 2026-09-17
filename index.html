@@ -26,6 +26,8 @@
   --accent:#4459E8; --accent-soft:#EAECFD; --accent-ink:#2C3AA8;
   /* Créer des groupes : #B35607 mesuré à 4,94:1 avec le texte blanc (seuil AA 4,5). */
   --orange:#B35607;
+  /* Violet mesuré à 6,04:1 et vert à 5,43:1 avec le texte blanc. */
+  --violet:#6B45D9; --vert:#0E7A3C;
   --warn:#B4740F; --warn-soft:#FCF2DF;
   --alert:#C0392F; --alert-soft:#FDE9E6;
   --ok:#2E7D5B; --ok-soft:#E4F2EC;
@@ -534,6 +536,13 @@ body.avec-chrono .top h1{padding-right:92px}
 /* Contour : les autres façons de faire des groupes, même repère visuel sans
    voler la vedette à l action principale. */
 .btn.orange-l{background:var(--surface);border-color:var(--orange);color:var(--orange)}
+/* Un code couleur par famille : orange pour les groupes, violet pour le
+   hasard, vert pour mesurer et évaluer, bleu pour le temps. */
+.btn.violet{background:var(--violet);border-color:var(--violet);color:#fff}
+.btn.violet-l{background:var(--surface);border-color:var(--violet);color:var(--violet)}
+.btn.vert{background:var(--vert);border-color:var(--vert);color:#fff}
+.btn.vert-l{background:var(--surface);border-color:var(--vert);color:var(--vert)}
+.chrono button.bleu{background:var(--accent);border-color:var(--accent);color:#fff}
 .rep{margin-top:10px;border:1px solid var(--line);border-radius:12px;overflow:hidden;background:var(--surface)}
 .rep-tete{display:flex;align-items:center;gap:10px;width:100%;min-height:56px;padding:0 12px;border:0;
   background:var(--surface-2);font-size:17px;font-weight:700;color:var(--ink);text-align:left}
@@ -575,7 +584,7 @@ body.avec-chrono .top h1{padding-right:92px}
 /* Numéro de version affiché dans les Réglages. À garder identique à VERSION
    dans sw.js : c'est le seul moyen de savoir ce que la tablette exécute
    vraiment quand une mise à jour semble ne pas être arrivée. */
-var BUILD = "v21";
+var BUILD = "v22";
 
 var KEY = "carnet-eps-v1";
 function uid(){ return Math.random().toString(36).slice(2,10); }
@@ -1497,8 +1506,8 @@ function vueSeance(){
   }
 
   h += '<div class="sect"><div class="row">'
-    + '<button class="btn grow" id="atelier">Atelier de performances</button>'
-    + '<button class="btn grow" id="tirage">Tirer un élève</button></div></div>';
+    + '<button class="btn grow vert" id="atelier">Atelier de performances</button>'
+    + '<button class="btn grow violet" id="tirage">Tirer un élève</button></div></div>';
 
   h += '<div class="sect"'+styleClasse(cl.nom)+'><span class="eyebrow">Appel · '+els.length+' élève'+(els.length>1?"s":"")+'</span><div class="stack" style="gap:8px">';
   if(!els.length) h += '<div class="empty">Aucun élève dans ce groupe.</div>';
@@ -1515,8 +1524,8 @@ function vueSeance(){
           var gi = ap ? groupeIndexDe(ap, e.id) : -1;
           return gi < 0 ? '' : '<span class="gtag"'+styleTeinte(gi)+'>'+esc(niv[gi].nom)+'</span>';
         })()
-      + (cl.noter ? '<button class="btn sm" data-note="'+e.id+'">Note</button>' : '')
-      + '<button class="btn sm" data-comp="'+e.id+'">Comp.</button></div>'
+      + (cl.noter ? '<button class="btn sm vert-l" data-note="'+e.id+'">Note</button>' : '')
+      + '<button class="btn sm vert-l" data-comp="'+e.id+'">Comp.</button></div>'
       + '<div class="acts">'
       + '<button class="act oubli" aria-pressed="'+oub+'" data-t="oubli" data-e="'+e.id+'">Oubli</button>'
       + '<button class="act absent" aria-pressed="'+abs+'" data-t="absent" data-e="'+e.id+'">Absent</button>'
@@ -1793,7 +1802,7 @@ function etapesHTML(etapes, coches){
     h += blocRepli("comp-" + i, "Complexifier", et.complexifier);
     h += '<div class="chrono">'
       + '<span class="chrono-t" id="chrono-' + i + '">' + mmss(et.minutes * 60000) + '</span>'
-      + '<button data-chr="marche" data-i="' + i + '">Démarrer</button>'
+      + '<button class="bleu" data-chr="marche" data-i="' + i + '">Démarrer</button>'
       + '<button data-chr="pause" data-i="' + i + '">Pause</button>'
       + '<button data-chr="raz" data-i="' + i + '">Remise à zéro</button>'
       + '<button class="chrono-plein" data-plein="' + i + '" '
@@ -4992,7 +5001,7 @@ function vueTournoi(){
   }
 
   h += '<div class="sect"><div class="row">'
-    + '<button class="btn grow primary" id="roue">Roue des couleurs</button>'
+    + '<button class="btn grow violet" id="roue">Roue des couleurs</button>'
     + (courant ? '<button class="btn grow" id="chrono">Chrono '+t.config.duree+' min</button>' : '')
     + '</div><div class="row" style="margin-top:8px">'
     + '<button class="btn grow" id="clst">Classement</button>'
