@@ -531,6 +531,9 @@ body.avec-chrono .top h1{padding-right:92px}
 .roue-btn{min-height:66px;font-size:21px;width:min(92vw,430px)}
 /* Répartitions de séance : lisibles à bout de bras dans un gymnase. */
 .btn.orange{background:var(--orange);border-color:var(--orange);color:#fff}
+/* Contour : les autres façons de faire des groupes, même repère visuel sans
+   voler la vedette à l action principale. */
+.btn.orange-l{background:var(--surface);border-color:var(--orange);color:var(--orange)}
 .rep{margin-top:10px;border:1px solid var(--line);border-radius:12px;overflow:hidden;background:var(--surface)}
 .rep-tete{display:flex;align-items:center;gap:10px;width:100%;min-height:56px;padding:0 12px;border:0;
   background:var(--surface-2);font-size:17px;font-weight:700;color:var(--ink);text-align:left}
@@ -572,7 +575,7 @@ body.avec-chrono .top h1{padding-right:92px}
 /* Numéro de version affiché dans les Réglages. À garder identique à VERSION
    dans sw.js : c'est le seul moyen de savoir ce que la tablette exécute
    vraiment quand une mise à jour semble ne pas être arrivée. */
-var BUILD = "v20";
+var BUILD = "v21";
 
 var KEY = "carnet-eps-v1";
 function uid(){ return Math.random().toString(36).slice(2,10); }
@@ -1481,9 +1484,9 @@ function vueSeance(){
               + (view.filtre === g.id) + '">'+esc(g.nom)+' ('+effectifGroupe(ap, cl.id, g.id)+')</button>';
           }).join("")
         + '<button class="chip" data-f="_sans" aria-pressed="'+(view.filtre === "_sans")+'">Sans groupe ('+sansGroupe(ap, cl.id)+')</button>'
-        + '</div><button class="btn sm wide" id="niveaux" style="margin-top:8px">Modifier les groupes</button></div>';
+        + '</div><button class="btn sm wide orange-l" id="niveaux" style="margin-top:8px">Modifier les groupes</button></div>';
     } else {
-      h += '<div class="sect"><button class="btn sm wide" id="niveaux">Créer des groupes de niveau en '+esc(ap.nom)+'</button></div>';
+      h += '<div class="sect"><button class="btn sm wide orange-l" id="niveaux">Créer des groupes de niveau en '+esc(ap.nom)+'</button></div>';
     }
   }
   if(view.filtre && niv.length){
@@ -2288,8 +2291,8 @@ function sheetCreerGroupes(ap, sq, els, date, cle){
     + '<div class="abs-g" id="rabsl">' + listeAbsents() + '</div>'
     + '<p class="muted" id="rinfo" style="margin:0;font-size:13px">' + info() + '</p>'
     + '<button class="btn wide orange" id="rhasard">Répartir au hasard</button>'
-    + '<button class="btn wide" id="rmain">Placer les élèves à la main</button>'
-    + (prec.length ? '<button class="btn wide" id="rreprendre">Reprendre une répartition</button>' : ''),
+    + '<button class="btn wide orange-l" id="rmain">Placer les élèves à la main</button>'
+    + (prec.length ? '<button class="btn wide orange-l" id="rreprendre">Reprendre une répartition</button>' : ''),
     function(root){
       /* La feuille donne le focus au premier champ, ce qui ouvrirait le clavier
          de la tablette : le nom est déjà rempli, on le retire. */
@@ -2440,7 +2443,7 @@ function vueCycle(){
   h += '<div class="sect"'+sty+'><div class="row" style="flex-wrap:wrap;gap:8px">'
     + '<span class="badge b-classe num">'+frDate(ap.debut)+' → '+frDate(ap.fin)+'</span>'
     + '<span class="grow"></span><button class="btn sm" id="editapsa">Modifier la période</button></div>'
-    + '<button class="btn sm wide" id="grpapsa" style="margin-top:10px">'
+    + '<button class="btn sm wide orange-l" id="grpapsa" style="margin-top:10px">'
     + (niveauxDe(ap).length ? "Groupes de niveau (" + niveauxDe(ap).length + ")" : "Créer des groupes de niveau")
     + '</button></div>';
 
@@ -2981,16 +2984,16 @@ function vueGroupes(){
     h += '<div class="sect"><div class="empty">Aucun groupe en '+esc(ap.nom)+'.<br>'
       + 'Crée-les, puis touche un élève pour le placer.</div>'
       + '<div class="row" style="margin-top:12px">'
-      + '<button class="btn grow" data-creer="2">2 groupes</button>'
-      + '<button class="btn grow" data-creer="3">3 groupes</button>'
-      + '<button class="btn grow" data-creer="4">4 groupes</button></div>';
+      + '<button class="btn grow orange-l" data-creer="2">2 groupes</button>'
+      + '<button class="btn grow orange-l" data-creer="3">3 groupes</button>'
+      + '<button class="btn grow orange-l" data-creer="4">4 groupes</button></div>';
     var source = S.apsa.filter(function(a){
       return a.classeId === c.id && a.id !== ap.id && niveauxDe(a).length;
     });
     if(source.length){
       h += '<p class="muted" style="font-size:13px;margin:14px 0 8px">Ou repartir d\'une répartition existante :</p><div class="stack" style="gap:8px">'
         + source.map(function(a){
-            return '<button class="btn wide" data-copie="'+a.id+'">Reprendre les groupes de '+esc(a.nom)+'</button>';
+            return '<button class="btn wide orange-l" data-copie="'+a.id+'">Reprendre les groupes de '+esc(a.nom)+'</button>';
           }).join("") + '</div>';
     }
     h += '</div>';
@@ -3032,7 +3035,7 @@ function vueGroupes(){
       + '<button class="btn sm ghost" data-supg="'+g.id+'" aria-label="Supprimer le groupe">✕</button></div>';
   });
   h += '</div><div class="row" style="margin-top:10px">'
-    + '<button class="btn sm grow" id="addg">+ Ajouter un groupe</button>'
+    + '<button class="btn sm grow orange-l" id="addg">+ Ajouter un groupe</button>'
     + '<button class="btn sm grow" id="vider">Tout remettre à zéro</button></div></div>';
 
   h += '<div class="sect"><span class="eyebrow">'+els.length+' élèves · touche pour changer de groupe</span>'
@@ -3193,7 +3196,7 @@ function vueClasse(){
         var apc = apsaCourante(c.id);
         if(!apc) return '';
         var n = niveauxDe(apc).length;
-        return '<button class="btn wide" id="niveaux" style="margin-top:8px">'
+        return '<button class="btn wide orange-l" id="niveaux" style="margin-top:8px">'
           + (n ? "Groupes de niveau — " + esc(apc.nom) + " (" + n + ")"
                : "Créer des groupes de niveau en " + esc(apc.nom)) + '</button>';
       })()
